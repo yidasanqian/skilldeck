@@ -12,11 +12,13 @@ const requiredPlatforms = [
   {
     artifact: "skilldeck-macos-intel",
     key: "darwin-x86_64",
+    releaseAssetName: "SkillDeck_x64.app.tar.gz",
     signaturePattern: ".app.tar.gz.sig",
   },
   {
     artifact: "skilldeck-macos-arm64",
     key: "darwin-aarch64",
+    releaseAssetName: "SkillDeck_aarch64.app.tar.gz",
     signaturePattern: ".app.tar.gz.sig",
   },
   {
@@ -87,9 +89,10 @@ for (const platform of requiredPlatforms) {
 
   const bundlePath = signaturePath.slice(0, -".sig".length);
   const signature = (await readFile(signaturePath, "utf8")).trim();
+  const assetName = platform.releaseAssetName ?? basename(bundlePath);
   platforms[platform.key] = {
     signature,
-    url: assetUrl(basename(bundlePath)),
+    url: assetUrl(assetName),
   };
 }
 

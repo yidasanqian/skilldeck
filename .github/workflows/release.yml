@@ -144,10 +144,7 @@ jobs:
 
       - name: Create updater manifest
         env:
-          RELEASE_NOTES: |
-            SkillDeck desktop update.
-
-            This release includes signed in-app updater metadata for macOS, Windows, and Linux. Updater signatures verify package integrity; they do not replace macOS notarization or OS publisher verification.
+          RELEASE_NOTES: SkillDeck desktop update.
         run: node .github/scripts/create-latest-manifest.mjs release-artifacts latest.json
 
       - name: Upload latest.json to release
