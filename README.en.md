@@ -101,6 +101,14 @@ The command log file is named `commands.log` and is written to:
 
 This repository includes a GitHub Actions release workflow. Pushing a `v*` tag or manually dispatching the workflow builds desktop bundles for macOS, Windows, and Linux; tag builds also create a draft release.
 
+Release bundles are built by GitHub Actions. Because the project has not yet integrated platform code signing and notarization, operating systems may show warnings such as "unverified developer" or "unknown publisher". This means the OS cannot verify the publisher identity; only download builds from this repository's GitHub Releases, and continue only after confirming the source is trusted.
+
+When the operating system shows a security warning:
+
+- macOS: after the first launch is blocked, open System Settings > Privacy & Security, then choose to open the app from the security notice.
+- Windows: if SmartScreen shows an unknown publisher warning, confirm the file came from this repository's Releases, then choose More info and continue running it.
+- Linux: prefer the package format supported by your distribution; if the desktop environment blocks launch, allow the file to run as a program in file properties, or install it through the system software installer.
+
 ## License
 
 MIT
