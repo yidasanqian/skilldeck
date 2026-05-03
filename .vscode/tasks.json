@@ -1,0 +1,56 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "ui:dev",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "dev", "--", "--port", "5173"],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": ".*Local:.*http://127\\.0\\.0\\.1:5173.*"
+        }
+      }
+    },
+    {
+      "label": "tauri:build-debug",
+      "type": "shell",
+      "command": "/Users/linyu/.cargo/bin/cargo",
+      "args": [
+        "build",
+        "--manifest-path",
+        "src-tauri/Cargo.toml",
+        "--no-default-features"
+      ],
+      "dependsOn": ["ui:dev"],
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "tauri:build-release",
+      "type": "shell",
+      "command": "/Users/linyu/.cargo/bin/cargo",
+      "args": [
+        "build",
+        "--release",
+        "--manifest-path",
+        "src-tauri/Cargo.toml"
+      ],
+      "dependsOn": ["ui:build"],
+      "problemMatcher": "$rustc"
+    },
+    {
+      "label": "ui:build",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"],
+      "problemMatcher": "$tsc"
+    }
+  ]
+}

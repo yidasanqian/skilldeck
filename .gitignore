@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+src-tauri/target/
+
+# Runtime logs
+logs/
+*.log
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Editor and OS noise
+.DS_Store
+*.swp
+*.swo
+.claude/
+
+# Local agent/editor state
+.superpowers/
+docs/superpowers/

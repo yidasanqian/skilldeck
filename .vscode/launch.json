@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Tauri: debug app",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/src-tauri/target/debug/skilldeck",
+      "args": [],
+      "preLaunchTask": "tauri:build-debug",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PATH": "/Users/linyu/.cargo/bin:/Users/linyu/.nvm/versions/node/v24.14.1/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${env:PATH}"
+      },
+      "sourceLanguages": ["rust"]
+    },
+    {
+      "name": "Tauri: debug production build",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/src-tauri/target/release/skilldeck",
+      "args": [],
+      "preLaunchTask": "tauri:build-release",
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PATH": "/Users/linyu/.cargo/bin:/Users/linyu/.nvm/versions/node/v24.14.1/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${env:PATH}"
+      },
+      "sourceLanguages": ["rust"]
+    }
+  ]
+}

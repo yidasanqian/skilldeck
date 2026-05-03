@@ -1,0 +1,13 @@
+{
+  "lldb.adapterEnv": {
+    "PATH": "/Users/linyu/.cargo/bin:${env:PATH}"
+  },
+  "lldb.cargo": "/Users/linyu/.cargo/bin/cargo",
+  "lldb.script": {
+    "lang": {
+      "rust": {
+        "sysroot": "/Users/linyu/.rustup/toolchains/stable-x86_64-apple-darwin"
+      }
+    }
+  }
+}

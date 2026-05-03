@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="SkillDeck app icon">
+  <defs>
+    <linearGradient id="tile" x1="238" y1="122" x2="786" y2="916" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="0.42" stop-color="#dbeafe"/>
+      <stop offset="1" stop-color="#94a3b8"/>
+    </linearGradient>
+    <radialGradient id="aura" cx="0" cy="0" r="1" gradientTransform="matrix(560 0 0 560 320 210)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#67e8f9" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#60a5fa" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#2563eb" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ribbon" x1="290" y1="270" x2="744" y2="762" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0f766e"/>
+      <stop offset="0.5" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="ribbonHighlight" x1="346" y1="258" x2="716" y2="732" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.86"/>
+      <stop offset="0.55" stop-color="#e0f2fe" stop-opacity="0.38"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="tileShadow" x="32" y="32" width="960" height="960" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="34" stdDeviation="38" flood-color="#020617" flood-opacity="0.22"/>
+      <feDropShadow dx="0" dy="5" stdDeviation="9" flood-color="#020617" flood-opacity="0.16"/>
+    </filter>
+    <filter id="markShadow" x="166" y="166" width="692" height="692" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="26" stdDeviation="22" flood-color="#0f172a" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#tileShadow)">
+    <rect x="92" y="78" width="840" height="840" rx="188" fill="url(#tile)"/>
+    <rect x="92" y="78" width="840" height="840" rx="188" fill="url(#aura)"/>
+    <path d="M188 220c69-89 177-142 305-142h251c104 0 188 84 188 188v254c0 216-176 398-420 398H280c-104 0-188-84-188-188V394c0-66 34-128 96-174Z" fill="#ffffff" opacity="0.26"/>
+    <path d="M116 706V266c0-91 74-164 164-164h464c90 0 164 73 164 164v439c-73 68-194 111-396 111-201 0-323-43-396-110Z" fill="#0f172a" opacity="0.05"/>
+  </g>
+
+  <g filter="url(#markShadow)">
+    <path d="M681 286c-54-38-129-57-204-44-89 16-156 73-166 144-12 87 58 132 155 149 104 18 169 52 158 121-10 63-79 103-160 89-54-9-103-35-139-75" fill="none" stroke="#0f172a" stroke-opacity="0.22" stroke-width="144" stroke-linecap="round"/>
+    <path d="M681 286c-54-38-129-57-204-44-89 16-156 73-166 144-12 87 58 132 155 149 104 18 169 52 158 121-10 63-79 103-160 89-54-9-103-35-139-75" fill="none" stroke="url(#ribbon)" stroke-width="112" stroke-linecap="round"/>
+    <path d="M650 272c-46-22-105-30-163-20-73 13-128 59-136 115-10 70 49 105 130 119" fill="none" stroke="url(#ribbonHighlight)" stroke-width="34" stroke-linecap="round"/>
+    <path d="M620 610c18 62-48 117-130 119" fill="none" stroke="#ffffff" stroke-opacity="0.24" stroke-width="30" stroke-linecap="round"/>
+  </g>
+
+  <circle cx="694" cy="282" r="40" fill="#f8fafc" opacity="0.95"/>
+  <circle cx="694" cy="282" r="17" fill="#22c55e"/>
+  <circle cx="326" cy="670" r="32" fill="#f8fafc" opacity="0.92"/>
+  <circle cx="326" cy="670" r="13" fill="#2563eb"/>
+</svg>
