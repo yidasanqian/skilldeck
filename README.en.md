@@ -101,7 +101,7 @@ The command log file is named `commands.log` and is written to:
 
 This repository includes a GitHub Actions release workflow. Pushing a `v*` tag or manually dispatching the workflow builds desktop bundles for macOS, Windows, and Linux; tag builds also create a draft release and upload the Tauri updater `latest.json` asset.
 
-In-app updates are available starting with `v0.1.1`; an installed `v0.1.0` build does not include the updater and cannot update itself to `v0.1.1`. The Tauri updater signature only verifies package integrity; it does not replace macOS Developer ID signing or notarization.
+In-app updates are available starting with `v0.1.1`; an installed `v0.1.0` build does not include the updater and cannot update itself to `v0.1.1`.
 
 Release bundles are built by GitHub Actions. Because the project has not yet integrated platform code signing and notarization, operating systems may show warnings such as "unverified developer" or "unknown publisher". This means the OS cannot verify the publisher identity; only download builds from this repository's GitHub Releases, and continue only after confirming the source is trusted.
 

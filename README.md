@@ -100,7 +100,7 @@ SkillDeck 有两类日志：
 
 仓库包含 GitHub Actions release workflow。推送 `v*` tag 或手动触发 workflow 后，会构建 macOS、Windows 和 Linux 桌面包；tag 触发时会创建 draft release，并上传 Tauri updater 使用的 `latest.json`。
 
-应用内更新从 `v0.1.1` 开始可用；已经安装的 `v0.1.0` 没有 updater，不能自更新到 `v0.1.1`。Tauri updater 签名只用于校验更新包完整性，不能替代 macOS Developer ID 签名或公证。
+应用内更新从 `v0.1.1` 开始可用；已经安装的 `v0.1.0` 没有 updater，不能自更新到 `v0.1.1`。
 
 当前发布包由 GitHub Actions 自动构建。由于项目暂未接入平台代码签名与公证，不同系统可能显示“无法验证开发者”“未知发布者”等安全提示。这表示操作系统无法确认发布者身份；请只从本仓库 GitHub Releases 下载，并在确认来源可信后继续安装。
 
