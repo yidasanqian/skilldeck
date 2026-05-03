@@ -203,11 +203,26 @@ button:disabled {
 }
 
 .language-select,
-.select-with-icon {
+.select-with-icon,
+.input-with-icon {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   color: var(--text-secondary);
+}
+
+.input-with-icon {
+  width: 100%;
+  min-height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  background: var(--surface);
+}
+
+.input-with-icon:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .language-select select,
@@ -219,6 +234,19 @@ button:disabled {
   font-size: 12px;
   min-height: auto;
   padding: 2px 4px;
+}
+
+.input-with-icon input {
+  flex: 1;
+  min-width: 0;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.input-with-icon input:focus {
+  outline: none;
 }
 
 /* ── Workspace ── */
@@ -427,6 +455,10 @@ td small {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-top: 14px;
+}
+
+.update-proxy-field {
+  margin-top: 12px;
 }
 
 .update-grid > div {

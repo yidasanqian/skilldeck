@@ -6,12 +6,16 @@ import { requireTauriRuntime } from "./tauriRuntime";
 
 export interface AppUpdateApi {
   getCurrentAppVersion(): Promise<string>;
-  checkForAppUpdate(): Promise<AppUpdateInfo | null>;
-  downloadAndInstallAppUpdate(onProgress: (progress: AppUpdateProgress) => void): Promise<void>;
+  checkForAppUpdate(proxy?: string): Promise<AppUpdateInfo | null>;
+  downloadAndInstallAppUpdate(
+    onProgress: (progress: AppUpdateProgress) => void,
+    proxy?: string,
+  ): Promise<void>;
   relaunchApp(): Promise<void>;
 }
 
 let pendingUpdate: Update | null = null;
+let pendingUpdateProxy: string | undefined;
 
 function toUpdateInfo(update: Update): AppUpdateInfo {
   return {
@@ -48,26 +52,39 @@ function updateProgressFromEvent(
   };
 }
 
+function updaterOptions(proxy?: string) {
+  const normalizedProxy = proxy?.trim();
+  return normalizedProxy ? { proxy: normalizedProxy } : undefined;
+}
+
+function normalizedProxy(proxy?: string) {
+  return proxy?.trim() || undefined;
+}
+
 export function createAppUpdateApi(): AppUpdateApi {
   return {
     async getCurrentAppVersion() {
       requireTauriRuntime("App version lookup");
       return getVersion();
     },
-    async checkForAppUpdate() {
+    async checkForAppUpdate(proxy) {
       requireTauriRuntime("App update checks");
-      const update = await check();
+      const proxyUrl = normalizedProxy(proxy);
+      const update = await check(updaterOptions(proxyUrl));
       await pendingUpdate?.close();
       pendingUpdate = update;
+      pendingUpdateProxy = proxyUrl;
       return update ? toUpdateInfo(update) : null;
     },
-    async downloadAndInstallAppUpdate(onProgress) {
+    async downloadAndInstallAppUpdate(onProgress, proxy) {
       requireTauriRuntime("App updates");
+      const proxyUrl = normalizedProxy(proxy);
       let update = pendingUpdate;
 
-      if (!update) {
-        update = await check();
+      if (!update || pendingUpdateProxy !== proxyUrl) {
+        update = await check(updaterOptions(proxyUrl));
         pendingUpdate = update;
+        pendingUpdateProxy = proxyUrl;
       }
 
       if (!update) {
@@ -86,4 +103,3 @@ export function createAppUpdateApi(): AppUpdateApi {
     },
   };
 }
-

@@ -10,6 +10,7 @@ export type EnvironmentOverall = "checking" | "ready" | "partial" | "missing";
 
 export interface UserSettings {
   defaultScope: Scope;
+  updateProxyUrl?: string;
 }
 
 export type AppUpdatePhase =

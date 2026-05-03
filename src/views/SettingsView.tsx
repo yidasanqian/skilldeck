@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, DownloadCloud, Languages, RefreshCw, RotateCcw } from "lucide-react";
+import { AlertCircle, CheckCircle2, DownloadCloud, Languages, Network, RefreshCw, RotateCcw } from "lucide-react";
 import type { TFunction } from "../i18n";
 import type { AgentCatalogResponse, AppUpdateState, Locale, Scope, UserSettings } from "../types";
 
@@ -150,6 +150,20 @@ export function SettingsView({
             <strong>{formatDate(appUpdate.checkedAt, locale, t("settings.update.notChecked"))}</strong>
           </div>
         </div>
+
+        <label className="field-stack update-proxy-field">
+          {t("settings.update.proxy")}
+          <div className="input-with-icon">
+            <Network size={15} />
+            <input
+              value={settings.updateProxyUrl ?? ""}
+              onChange={(event) => patchSettings({ updateProxyUrl: event.target.value })}
+              placeholder={t("settings.update.proxyPlaceholder")}
+              spellCheck={false}
+              disabled={updateBusy}
+            />
+          </div>
+        </label>
 
         {appUpdate.info?.body ? (
           <div className="update-notes">

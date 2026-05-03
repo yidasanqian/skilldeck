@@ -131,6 +131,7 @@ export default function App() {
   const [installDraft, setInstallDraft] = useState<InstallDraft | null>(null);
   const [appUpdate, setAppUpdate] = useState<AppUpdateState>(initialAppUpdateState);
   const installedRequestId = useRef(0);
+  const updateProxyUrlRef = useRef<string | undefined>(settings.updateProxyUrl?.trim() || undefined);
 
   const appendCommand = useCallback((command: CommandResult) => {
     setCommands((current) => [command, ...current].slice(0, 80));
@@ -254,7 +255,7 @@ export default function App() {
 
     try {
       const currentVersion = await appUpdateApi.getCurrentAppVersion();
-      const update = await appUpdateApi.checkForAppUpdate();
+      const update = await appUpdateApi.checkForAppUpdate(updateProxyUrlRef.current);
       setAppUpdate({
         phase: update ? "available" : "upToDate",
         currentVersion: update?.currentVersion ?? currentVersion,
@@ -285,13 +286,16 @@ export default function App() {
     }));
 
     try {
-      await appUpdateApi.downloadAndInstallAppUpdate((progress) => {
-        setAppUpdate((current) => ({
-          ...current,
-          downloadedBytes: progress.downloadedBytes,
-          contentLength: progress.contentLength,
-        }));
-      });
+      await appUpdateApi.downloadAndInstallAppUpdate(
+        (progress) => {
+          setAppUpdate((current) => ({
+            ...current,
+            downloadedBytes: progress.downloadedBytes,
+            contentLength: progress.contentLength,
+          }));
+        },
+        updateProxyUrlRef.current,
+      );
       setAppUpdate((current) => ({
         ...current,
         phase: "readyToRelaunch",
@@ -322,6 +326,10 @@ export default function App() {
     document.documentElement.lang = locale.split("-")[0];
     persistLocale(locale);
   }, [locale]);
+
+  useEffect(() => {
+    updateProxyUrlRef.current = settings.updateProxyUrl?.trim() || undefined;
+  }, [settings.updateProxyUrl]);
 
   useEffect(() => {
     void (async () => {
