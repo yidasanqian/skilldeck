@@ -13,6 +13,7 @@ import type {
   SkillUpdateRequest,
 } from "../types";
 import { invoke } from "@tauri-apps/api/core";
+import { requireTauriRuntime } from "./tauriRuntime";
 
 export interface SkillsApi {
   checkEnvironment(): Promise<CheckEnvironmentResponse>;
@@ -25,12 +26,6 @@ export interface SkillsApi {
   skillsRemove(request: SkillRemoveRequest): Promise<SkillsMutationResponse>;
   skillsUpdate(request: SkillUpdateRequest): Promise<SkillsMutationResponse>;
   checkSymlinkPaths(paths: string[]): Promise<string[]>;
-}
-
-declare global {
-  interface Window {
-    __TAURI_INTERNALS__?: unknown;
-  }
 }
 
 function getNpxBinaryName() {
@@ -90,17 +85,8 @@ export function formatCommand(args: string[]) {
     .join(" ")}`;
 }
 
-function isTauriRuntime() {
-  return typeof window !== "undefined" && window.__TAURI_INTERNALS__ !== undefined;
-}
-
 function invokeTauri<T>(command: string, args?: Record<string, unknown>) {
-  if (!isTauriRuntime()) {
-    return Promise.reject(
-      new Error("SkillDeck requires the Tauri desktop runtime. Start it with `npm run tauri:dev`."),
-    );
-  }
-
+  requireTauriRuntime("SkillDeck CLI operations");
   return invoke<T>(command, args);
 }
 

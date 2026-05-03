@@ -1,6 +1,6 @@
 [package]
 name = "skilldeck"
-version = "0.1.0"
+version = "0.1.1"
 description = "A lightweight desktop UI wrapper for the official npx skills CLI"
 authors = ["SkillDeck"]
 edition = "2021"
@@ -17,3 +17,5 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "std"
 tauri-plugin-dialog = "^2"
 tauri-plugin-log = "^2"
 log = "^0.4"
+tauri-plugin-updater = "^2"
+tauri-plugin-process = "^2"

@@ -3,13 +3,14 @@ import {
   Home,
   Languages,
   PackageCheck,
+  RotateCcw,
   Search,
   Settings,
   TerminalSquare,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import type { TFunction } from "../i18n";
-import type { AgentCatalogResponse, EnvironmentOverall, Locale, ViewId } from "../types";
+import type { AgentCatalogResponse, AppUpdateState, EnvironmentOverall, Locale, ViewId } from "../types";
 import { StatusChip } from "./StatusChip";
 
 interface AppShellProps {
@@ -19,6 +20,7 @@ interface AppShellProps {
   locale: Locale;
   agentCatalog: AgentCatalogResponse;
   agentMetadataLoading: boolean;
+  appUpdate: AppUpdateState;
   logOpen: boolean;
   t: TFunction;
   onNavigate: (view: ViewId) => void;
@@ -41,6 +43,18 @@ function environmentLabel(environment: EnvironmentOverall, t: TFunction) {
   return t("top.checking");
 }
 
+function shouldShowUpdateEntry(appUpdate: AppUpdateState) {
+  return ["available", "readyToRelaunch", "error"].includes(appUpdate.phase);
+}
+
+function updateEntryLabel(appUpdate: AppUpdateState, t: TFunction) {
+  if (appUpdate.phase === "available") {
+    return t("top.updateAvailable", { version: appUpdate.info?.latestVersion ?? "-" });
+  }
+  if (appUpdate.phase === "readyToRelaunch") return t("top.updateReady");
+  return t("top.updateFailed");
+}
+
 export function AppShell({
   activeView,
   children,
@@ -48,6 +62,7 @@ export function AppShell({
   locale,
   agentCatalog,
   agentMetadataLoading,
+  appUpdate,
   logOpen,
   t,
   onNavigate,
@@ -69,6 +84,16 @@ export function AppShell({
                     count: agentCatalog.agents.length,
                   })}
           </span>
+          {shouldShowUpdateEntry(appUpdate) ? (
+            <button
+              className={`topbar-update ${appUpdate.phase === "error" ? "is-error" : ""}`}
+              type="button"
+              onClick={() => onNavigate("settings")}
+            >
+              <RotateCcw size={13} />
+              {updateEntryLabel(appUpdate, t)}
+            </button>
+          ) : null}
           <label className="language-select">
             <Languages size={14} aria-hidden="true" />
             <select value={locale} onChange={(event) => onLocaleChange(event.target.value as Locale)}>

@@ -99,7 +99,9 @@ The command log file is named `commands.log` and is written to:
 
 ## Release
 
-This repository includes a GitHub Actions release workflow. Pushing a `v*` tag or manually dispatching the workflow builds desktop bundles for macOS, Windows, and Linux; tag builds also create a draft release.
+This repository includes a GitHub Actions release workflow. Pushing a `v*` tag or manually dispatching the workflow builds desktop bundles for macOS, Windows, and Linux; tag builds also create a draft release and upload the Tauri updater `latest.json` asset.
+
+In-app updates are available starting with `v0.1.1`; an installed `v0.1.0` build does not include the updater and cannot update itself to `v0.1.1`. The Tauri updater signature only verifies package integrity; it does not replace macOS Developer ID signing or notarization.
 
 Release bundles are built by GitHub Actions. Because the project has not yet integrated platform code signing and notarization, operating systems may show warnings such as "unverified developer" or "unknown publisher". This means the OS cannot verify the publisher identity; only download builds from this repository's GitHub Releases, and continue only after confirming the source is trusted.
 
@@ -107,7 +109,7 @@ When the operating system shows a security warning:
 
 - macOS: after the first launch is blocked, open System Settings > Privacy & Security, then choose to open the app from the security notice.
 - Windows: if SmartScreen shows an unknown publisher warning, confirm the file came from this repository's Releases, then choose More info and continue running it.
-- Linux: prefer the package format supported by your distribution; if the desktop environment blocks launch, allow the file to run as a program in file properties, or install it through the system software installer.
+- Linux: use `.deb` for regular installation; in-app updates use the AppImage updater package. If the desktop environment blocks launch, allow the file to run as a program in file properties, or install it through the system software installer.
 
 ## License
 

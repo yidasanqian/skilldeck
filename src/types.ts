@@ -12,6 +12,40 @@ export interface UserSettings {
   defaultScope: Scope;
 }
 
+export type AppUpdatePhase =
+  | "idle"
+  | "checking"
+  | "upToDate"
+  | "available"
+  | "downloading"
+  | "readyToRelaunch"
+  | "error"
+  | "unsupported";
+
+export interface AppUpdateInfo {
+  currentVersion: string;
+  latestVersion: string;
+  date?: string;
+  body?: string;
+  rawJson?: Record<string, unknown>;
+}
+
+export interface AppUpdateProgress {
+  downloadedBytes: number;
+  contentLength?: number;
+  finished?: boolean;
+}
+
+export interface AppUpdateState {
+  phase: AppUpdatePhase;
+  currentVersion?: string;
+  checkedAt?: string;
+  info?: AppUpdateInfo;
+  downloadedBytes: number;
+  contentLength?: number;
+  error?: string;
+}
+
 export interface InstallDraft {
   source: string;
   skillNames: string[];

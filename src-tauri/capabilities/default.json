@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Default permissions for the main SkillDeck window",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open"]
+  "permissions": ["core:default", "dialog:allow-open", "updater:default", "process:default"]
 }

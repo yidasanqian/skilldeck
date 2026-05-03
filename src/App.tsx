@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { createAppUpdateApi } from "./api/appUpdate";
 import { buildInstallArgs, buildRemoveArgs, buildUpdateArgs, createSkillsApi } from "./api/skills";
 import { AppShell } from "./components/AppShell";
 import { CommandLog, type CommandLogFocus } from "./components/CommandLog";
@@ -7,6 +8,7 @@ import { ConfirmDialog, type ConfirmDialogState } from "./components/ConfirmDial
 import { createTranslator, getInitialLocale, persistLocale } from "./i18n";
 import type {
   AgentCatalogResponse,
+  AppUpdateState,
   CommandOutputEvent,
   CommandResult,
   EnvironmentStatus,
@@ -54,6 +56,11 @@ const initialInstallDefaults: InstallDefaultsResponse = {
   defaultCopy: false,
 };
 
+const initialAppUpdateState: AppUpdateState = {
+  phase: "idle",
+  downloadedBytes: 0,
+};
+
 function loadSettings(): UserSettings {
   try {
     const stored = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
@@ -92,8 +99,17 @@ function createPendingCommand(args: string[]): CommandResult {
   };
 }
 
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function isTauriRuntimeError(message: string) {
+  return message.includes("Tauri desktop runtime");
+}
+
 export default function App() {
   const api = useMemo(() => createSkillsApi(), []);
+  const appUpdateApi = useMemo(() => createAppUpdateApi(), []);
   const [activeView, setActiveView] = useState<ViewId>("dashboard");
   const [locale, setLocaleState] = useState<Locale>(() => getInitialLocale());
   const t = useMemo(() => createTranslator(locale), [locale]);
@@ -113,6 +129,7 @@ export default function App() {
   const [installDefaults, setInstallDefaults] = useState<InstallDefaultsResponse>(initialInstallDefaults);
   const [agentMetadataLoading, setAgentMetadataLoading] = useState(false);
   const [installDraft, setInstallDraft] = useState<InstallDraft | null>(null);
+  const [appUpdate, setAppUpdate] = useState<AppUpdateState>(initialAppUpdateState);
   const installedRequestId = useRef(0);
 
   const appendCommand = useCallback((command: CommandResult) => {
@@ -224,6 +241,83 @@ export default function App() {
     [api],
   );
 
+  const checkAppUpdate = useCallback(async () => {
+    const checkedAt = new Date().toISOString();
+    setAppUpdate((current) => ({
+      ...current,
+      phase: "checking",
+      checkedAt,
+      error: undefined,
+      downloadedBytes: 0,
+      contentLength: undefined,
+    }));
+
+    try {
+      const currentVersion = await appUpdateApi.getCurrentAppVersion();
+      const update = await appUpdateApi.checkForAppUpdate();
+      setAppUpdate({
+        phase: update ? "available" : "upToDate",
+        currentVersion: update?.currentVersion ?? currentVersion,
+        checkedAt,
+        info: update ?? undefined,
+        downloadedBytes: 0,
+      });
+    } catch (error) {
+      const message = errorMessage(error);
+      setAppUpdate((current) => ({
+        ...current,
+        phase: isTauriRuntimeError(message) ? "unsupported" : "error",
+        checkedAt,
+        error: message,
+        downloadedBytes: 0,
+        contentLength: undefined,
+      }));
+    }
+  }, [appUpdateApi]);
+
+  const downloadAppUpdate = useCallback(async () => {
+    setAppUpdate((current) => ({
+      ...current,
+      phase: "downloading",
+      error: undefined,
+      downloadedBytes: 0,
+      contentLength: undefined,
+    }));
+
+    try {
+      await appUpdateApi.downloadAndInstallAppUpdate((progress) => {
+        setAppUpdate((current) => ({
+          ...current,
+          downloadedBytes: progress.downloadedBytes,
+          contentLength: progress.contentLength,
+        }));
+      });
+      setAppUpdate((current) => ({
+        ...current,
+        phase: "readyToRelaunch",
+        error: undefined,
+      }));
+    } catch (error) {
+      setAppUpdate((current) => ({
+        ...current,
+        phase: "error",
+        error: errorMessage(error),
+      }));
+    }
+  }, [appUpdateApi]);
+
+  const relaunchApp = useCallback(async () => {
+    try {
+      await appUpdateApi.relaunchApp();
+    } catch (error) {
+      setAppUpdate((current) => ({
+        ...current,
+        phase: "error",
+        error: errorMessage(error),
+      }));
+    }
+  }, [appUpdateApi]);
+
   useEffect(() => {
     document.documentElement.lang = locale.split("-")[0];
     persistLocale(locale);
@@ -235,6 +329,10 @@ export default function App() {
       await loadAgentMetadata();
     })();
   }, [checkEnvironment, loadAgentMetadata]);
+
+  useEffect(() => {
+    void checkAppUpdate();
+  }, [checkAppUpdate]);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
@@ -373,6 +471,7 @@ export default function App() {
         locale={locale}
         agentCatalog={agentCatalog}
         agentMetadataLoading={agentMetadataLoading}
+        appUpdate={appUpdate}
         logOpen={logOpen}
         t={t}
         onNavigate={setActiveView}
@@ -440,10 +539,14 @@ export default function App() {
             settings={settings}
             agentCatalog={agentCatalog}
             agentMetadataLoading={agentMetadataLoading}
+            appUpdate={appUpdate}
             t={t}
             onLocaleChange={setLocale}
             onSettingsChange={setSettings}
             onReloadAgents={() => void loadAgentMetadata()}
+            onCheckAppUpdate={() => void checkAppUpdate()}
+            onDownloadAppUpdate={() => void downloadAppUpdate()}
+            onRelaunchApp={() => void relaunchApp()}
           />
         </div>
       </AppShell>

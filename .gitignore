@@ -13,6 +13,7 @@ logs/
 .env
 .env.*
 !.env.example
+.tauri/
 
 # Editor and OS noise
 .DS_Store
@@ -23,3 +24,4 @@ logs/
 # Local agent/editor state
 .superpowers/
 docs/superpowers/
+docs/release-maintenance.local.md
