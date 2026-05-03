@@ -22,22 +22,22 @@ const requiredPlatforms = [
   {
     artifact: "skilldeck-windows-x64",
     key: "windows-x86_64",
-    signaturePattern: ".msi.zip.sig",
+    signaturePatterns: [".msi.sig", "-setup.exe.sig"],
   },
   {
     artifact: "skilldeck-windows-arm64",
     key: "windows-aarch64",
-    signaturePattern: ".msi.zip.sig",
+    signaturePatterns: [".msi.sig", "-setup.exe.sig"],
   },
   {
     artifact: "skilldeck-linux-x64",
     key: "linux-x86_64",
-    signaturePattern: ".AppImage.tar.gz.sig",
+    signaturePatterns: [".AppImage.sig"],
   },
   {
     artifact: "skilldeck-linux-arm64",
     key: "linux-aarch64",
-    signaturePattern: ".AppImage.tar.gz.sig",
+    signaturePatterns: [".AppImage.sig"],
   },
 ];
 
@@ -74,11 +74,14 @@ const platforms = {};
 for (const platform of requiredPlatforms) {
   const artifactDir = join(artifactsDir, platform.artifact);
   const files = await walk(artifactDir);
-  const signaturePath = files.find((file) => file.endsWith(platform.signaturePattern));
+  const signaturePatterns = platform.signaturePatterns ?? [platform.signaturePattern];
+  const signaturePath = signaturePatterns
+    .flatMap((pattern) => files.filter((file) => file.endsWith(pattern)))
+    .sort((a, b) => a.localeCompare(b))[0];
 
   if (!signaturePath) {
     throw new Error(
-      `Missing ${platform.key} updater signature (${platform.signaturePattern}) in ${relative(process.cwd(), artifactDir)}`,
+      `Missing ${platform.key} updater signature (${signaturePatterns.join(" or ")}) in ${relative(process.cwd(), artifactDir)}`,
     );
   }
 
@@ -99,4 +102,3 @@ const manifest = {
 
 await writeFile(outputPath, `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(`Wrote ${outputPath} with ${Object.keys(platforms).length} platforms.`);
-
