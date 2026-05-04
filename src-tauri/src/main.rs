@@ -775,13 +775,50 @@ fn skills_list_blocking(
     }
 }
 
+fn is_source_segment_char(ch: char) -> bool {
+    ch.is_ascii_alphanumeric() || matches!(ch, '_' | '.' | '-')
+}
+
+fn is_github_shorthand_source(source: &str) -> bool {
+    let mut parts = source.trim().split('/');
+    let Some(owner) = parts.next() else {
+        return false;
+    };
+    let Some(repo) = parts.next() else {
+        return false;
+    };
+    parts.next().is_none()
+        && !owner.is_empty()
+        && !repo.is_empty()
+        && owner.chars().all(is_source_segment_char)
+        && repo.chars().all(is_source_segment_char)
+}
+
+fn has_inline_skill_selector(source: &str) -> bool {
+    let Some((repo_source, skill_name)) = source.trim().rsplit_once('@') else {
+        return false;
+    };
+    is_github_shorthand_source(repo_source)
+        && !skill_name.is_empty()
+        && skill_name.chars().all(is_source_segment_char)
+}
+
+fn install_source_and_skill_flags(source: &str, skill_names: &[String]) -> (String, Vec<String>) {
+    let trimmed_source = source.trim();
+    if skill_names.len() == 1 && is_github_shorthand_source(trimmed_source) {
+        return (format!("{}@{}", trimmed_source, skill_names[0]), Vec::new());
+    }
+    if has_inline_skill_selector(trimmed_source) {
+        return (trimmed_source.to_string(), Vec::new());
+    }
+    (trimmed_source.to_string(), skill_names.to_vec())
+}
+
 fn build_add_args(request: &SkillInstallRequest) -> Vec<String> {
-    let mut args = vec![
-        "skills".to_string(),
-        "add".to_string(),
-        request.source.clone(),
-    ];
-    for skill_name in &request.skill_names {
+    let (source, skill_names) =
+        install_source_and_skill_flags(&request.source, &request.skill_names);
+    let mut args = vec!["skills".to_string(), "add".to_string(), source];
+    for skill_name in &skill_names {
         args.push("--skill".to_string());
         args.push(skill_name.clone());
     }
@@ -1820,14 +1857,49 @@ mod tests {
             copy: false,
         };
         let args = build_add_args(&req);
-        assert_eq!(&args[..3], &["skills", "add", "anthropics/skills"]);
-        assert!(args.contains(&"--skill".to_string()));
-        assert!(args.contains(&"code-review".to_string()));
+        assert_eq!(
+            &args[..3],
+            &["skills", "add", "anthropics/skills@code-review"]
+        );
+        assert!(!args.contains(&"--skill".to_string()));
         assert!(args.contains(&"--agent".to_string()));
         assert!(args.contains(&"claude-code".to_string()));
         assert!(args.contains(&"-g".to_string()));
         assert!(args.contains(&"-y".to_string()));
         assert!(!args.contains(&"--copy".to_string()));
+    }
+
+    #[test]
+    fn build_add_args_keeps_skill_flag_for_url_sources() {
+        let req = SkillInstallRequest {
+            source: "https://github.com/heygen-com/hyperframes".to_string(),
+            skill_names: vec!["hyperframes".to_string()],
+            agents: vec![],
+            scope: Scope::Global,
+            project_path: None,
+            command_id: None,
+            copy: false,
+        };
+        let args = build_add_args(&req);
+        assert_eq!(args[2], "https://github.com/heygen-com/hyperframes");
+        assert!(args.contains(&"--skill".to_string()));
+        assert!(args.contains(&"hyperframes".to_string()));
+    }
+
+    #[test]
+    fn build_add_args_does_not_duplicate_inline_skill_selector() {
+        let req = SkillInstallRequest {
+            source: "heygen-com/hyperframes@hyperframes".to_string(),
+            skill_names: vec!["hyperframes".to_string()],
+            agents: vec![],
+            scope: Scope::Global,
+            project_path: None,
+            command_id: None,
+            copy: false,
+        };
+        let args = build_add_args(&req);
+        assert_eq!(args[2], "heygen-com/hyperframes@hyperframes");
+        assert!(!args.contains(&"--skill".to_string()));
     }
 
     #[test]

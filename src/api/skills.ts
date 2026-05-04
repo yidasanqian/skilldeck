@@ -36,10 +36,39 @@ export function toAgentCliId(agent: string) {
   return agent.trim().toLowerCase().replace(/[\s_]+/g, "-").replace(/-+/g, "-");
 }
 
-export function buildInstallArgs(request: SkillInstallRequest) {
-  const args = ["skills", "add", request.source];
+function isGitHubShorthandSource(source: string) {
+  return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(source.trim());
+}
 
-  request.skillNames.forEach((skillName) => {
+function hasInlineSkillSelector(source: string) {
+  return /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+@[A-Za-z0-9_.-]+$/.test(source.trim());
+}
+
+function installSourceAndSkillFlags(source: string, skillNames: string[]) {
+  const trimmedSource = source.trim();
+  if (skillNames.length === 1 && isGitHubShorthandSource(trimmedSource)) {
+    return {
+      source: `${trimmedSource}@${skillNames[0]}`,
+      skillNames: [],
+    };
+  }
+  if (hasInlineSkillSelector(trimmedSource)) {
+    return {
+      source: trimmedSource,
+      skillNames: [],
+    };
+  }
+  return {
+    source: trimmedSource,
+    skillNames,
+  };
+}
+
+export function buildInstallArgs(request: SkillInstallRequest) {
+  const installTarget = installSourceAndSkillFlags(request.source, request.skillNames);
+  const args = ["skills", "add", installTarget.source];
+
+  installTarget.skillNames.forEach((skillName) => {
     args.push("--skill", skillName);
   });
 

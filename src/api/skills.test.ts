@@ -14,7 +14,7 @@ describe("toAgentCliId", () => {
 });
 
 describe("buildInstallArgs", () => {
-  it("includes source, skill flags, and scope", () => {
+  it("uses owner/repo@skill for single GitHub shorthand installs", () => {
     const args = buildInstallArgs({
       source: "anthropics/skills",
       skillNames: ["code-review"],
@@ -23,14 +23,38 @@ describe("buildInstallArgs", () => {
       copy: false,
     });
     expect(args).toContain("add");
-    expect(args).toContain("anthropics/skills");
-    expect(args).toContain("--skill");
-    expect(args).toContain("code-review");
+    expect(args).toContain("anthropics/skills@code-review");
+    expect(args).not.toContain("--skill");
     expect(args).toContain("--agent");
     expect(args).toContain("claude-code");
     expect(args).toContain("-g");
     expect(args).toContain("-y");
     expect(args).not.toContain("--copy");
+  });
+
+  it("keeps --skill for URL sources", () => {
+    const args = buildInstallArgs({
+      source: "https://github.com/heygen-com/hyperframes",
+      skillNames: ["hyperframes"],
+      agents: [],
+      scope: "global",
+      copy: false,
+    });
+    expect(args[2]).toBe("https://github.com/heygen-com/hyperframes");
+    expect(args).toContain("--skill");
+    expect(args).toContain("hyperframes");
+  });
+
+  it("does not duplicate --skill when source already includes a selector", () => {
+    const args = buildInstallArgs({
+      source: "heygen-com/hyperframes@hyperframes",
+      skillNames: ["hyperframes"],
+      agents: [],
+      scope: "global",
+      copy: false,
+    });
+    expect(args[2]).toBe("heygen-com/hyperframes@hyperframes");
+    expect(args).not.toContain("--skill");
   });
 
   it("uses -p for project scope", () => {
