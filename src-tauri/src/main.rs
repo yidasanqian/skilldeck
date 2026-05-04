@@ -1347,7 +1347,8 @@ fn parse_skill_record(
     let updated_at = string_field(
         item,
         &["updatedAt", "updated_at", "modifiedAt", "modified_at"],
-    );
+    )
+    .or_else(|| skill_markdown_modified_iso(&source));
     let parsed_agents = if let Some(items) = item.get("agents").and_then(Value::as_array) {
         let raw_agents = items
             .iter()
@@ -1507,6 +1508,21 @@ fn discover_nvm_bins(home: &str) -> Vec<String> {
 
 fn now_iso() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+}
+
+fn system_time_iso(time: SystemTime) -> String {
+    let datetime: chrono::DateTime<chrono::Utc> = time.into();
+    datetime.to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+}
+
+fn skill_markdown_modified_iso(path: &str) -> Option<String> {
+    if path.trim().is_empty() {
+        return None;
+    }
+    fs::metadata(Path::new(path).join("SKILL.md"))
+        .and_then(|metadata| metadata.modified())
+        .ok()
+        .map(system_time_iso)
 }
 
 fn command_id() -> String {
@@ -1700,6 +1716,45 @@ mod tests {
             let skills = parse_list_output(&output, &Scope::Global, &[]).unwrap();
             assert_eq!(skills[0].name, "alt-name", "failed for key '{key}'");
         }
+    }
+
+    #[test]
+    fn parse_list_output_preserves_cli_updated_at() {
+        let output = r#"[{
+            "name": "dated",
+            "path": "/path/that/does/not/exist",
+            "updatedAt": "2026-05-04T10:20:30.000Z"
+        }]"#;
+        let skills = parse_list_output(output, &Scope::Global, &[]).unwrap();
+        assert_eq!(
+            skills[0].updated_at.as_deref(),
+            Some("2026-05-04T10:20:30.000Z")
+        );
+    }
+
+    #[test]
+    fn parse_list_output_falls_back_to_skill_markdown_modified_time() {
+        let dir = env::temp_dir().join(format!("skilldeck-mtime-test-{}", command_id()));
+        fs::create_dir(&dir).unwrap();
+        fs::write(dir.join("SKILL.md"), "# local\n").unwrap();
+        let output = format!(r#"[{{ "name": "local", "path": "{}" }}]"#, dir.display());
+
+        let skills = parse_list_output(&output, &Scope::Global, &[]).unwrap();
+
+        assert!(skills[0].updated_at.is_some());
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn parse_list_output_does_not_fall_back_without_skill_markdown() {
+        let dir = env::temp_dir().join(format!("skilldeck-no-skill-md-test-{}", command_id()));
+        fs::create_dir(&dir).unwrap();
+        let output = format!(r#"[{{ "name": "local", "path": "{}" }}]"#, dir.display());
+
+        let skills = parse_list_output(&output, &Scope::Global, &[]).unwrap();
+
+        assert!(skills[0].updated_at.is_none());
+        fs::remove_dir_all(dir).unwrap();
     }
 
     // ── parse_find_output ────────────────────────────────────────────────────
