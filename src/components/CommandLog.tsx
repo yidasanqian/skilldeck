@@ -1,9 +1,10 @@
-import { ChevronDown, ChevronUp, Copy, TerminalSquare } from "lucide-react";
+import { ChevronDown, ChevronUp, TerminalSquare } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { TFunction } from "../i18n";
 import type { CommandResult } from "../types";
 import { formatCommand } from "../api/skills";
 import { formatTerminalOutput } from "../utils/terminal";
+import { CopyButton } from "./CopyButton";
 import { StatusChip } from "./StatusChip";
 
 export type LogFilter = "all" | "success" | "failed" | "add" | "remove" | "update" | "find" | "list";
@@ -106,14 +107,7 @@ export function CommandLog({ commands, open, focus, t, onToggle }: CommandLogPro
                 <div className="command-detail">
                   <div className="command-detail__head">
                     <code>{formatCommand(selected.args)}</code>
-                    <button
-                      className="icon-button"
-                      type="button"
-                      aria-label={t("installed.copyCommand")}
-                      onClick={() => void navigator.clipboard?.writeText(formatCommand(selected.args))}
-                    >
-                      <Copy size={15} />
-                    </button>
+                    <CopyButton t={t} label={t("installed.copyCommand")} value={() => formatCommand(selected.args)} />
                   </div>
                   <div className="kv-grid">
                     <span>{t("common.exitCode")}</span>
@@ -123,11 +117,17 @@ export function CommandLog({ commands, open, focus, t, onToggle }: CommandLogPro
                   </div>
                   <div className="output-grid">
                     <div>
-                      <label>{t("common.stdout")}</label>
+                      <div className="output-grid__head">
+                        <label>{t("common.stdout")}</label>
+                        <CopyButton t={t} label={t("log.copyStdout")} value={() => selected.stdout} />
+                      </div>
                       <pre className="code-block">{formatTerminalOutput(selected.stdout, t("common.none"))}</pre>
                     </div>
                     <div>
-                      <label>{t("common.stderr")}</label>
+                      <div className="output-grid__head">
+                        <label>{t("common.stderr")}</label>
+                        <CopyButton t={t} label={t("log.copyStderr")} value={() => selected.stderr} />
+                      </div>
                       <pre className="code-block">{formatTerminalOutput(selected.stderr, t("common.none"))}</pre>
                     </div>
                   </div>

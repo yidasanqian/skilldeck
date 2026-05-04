@@ -1,6 +1,7 @@
-import { Copy, RefreshCw, Trash2, Upload } from "lucide-react";
+import { RefreshCw, Trash2, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { buildRemoveArgs, buildUpdateArgs, formatCommand } from "../api/skills";
+import { CopyButton } from "../components/CopyButton";
 import type { TFunction } from "../i18n";
 import type { AgentCatalogResponse, AgentInfo, Scope, SkillRecord } from "../types";
 import { formatTerminalOutput } from "../utils/terminal";
@@ -256,20 +257,15 @@ export function InstalledView({
                       <button className="icon-button danger" type="button" onClick={() => onRemove(skill)} aria-label={t("common.remove")}>
                         <Trash2 size={15} />
                       </button>
-                      <button
-                        className="icon-button"
-                        type="button"
-                        onClick={() =>
-                          void navigator.clipboard?.writeText(
-                            `${formatCommand(
-                              buildUpdateArgs({ skillName: skill.name, agents: skill.agents, scope: skill.scope }),
-                            )}\n${formatCommand(buildRemoveArgs({ skillName: skill.name, agents: skill.agents, scope: skill.scope }))}`,
-                          )
+                      <CopyButton
+                        t={t}
+                        label={t("installed.copyCommand")}
+                        value={() =>
+                          `${formatCommand(
+                            buildUpdateArgs({ skillName: skill.name, agents: skill.agents, scope: skill.scope }),
+                          )}\n${formatCommand(buildRemoveArgs({ skillName: skill.name, agents: skill.agents, scope: skill.scope }))}`
                         }
-                        aria-label={t("installed.copyCommand")}
-                      >
-                        <Copy size={15} />
-                      </button>
+                      />
                     </div>
                   </td>
                 </tr>
