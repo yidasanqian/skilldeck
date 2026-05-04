@@ -32,6 +32,10 @@ function getNpxBinaryName() {
   return navigator.userAgent.includes("Windows") ? "npx.cmd" : "npx";
 }
 
+export function toAgentCliId(agent: string) {
+  return agent.trim().toLowerCase().replace(/[\s_]+/g, "-").replace(/-+/g, "-");
+}
+
 export function buildInstallArgs(request: SkillInstallRequest) {
   const args = ["skills", "add", request.source];
 
@@ -40,7 +44,7 @@ export function buildInstallArgs(request: SkillInstallRequest) {
   });
 
   request.agents.forEach((agent) => {
-    args.push("--agent", agent.toLowerCase());
+    args.push("--agent", toAgentCliId(agent));
   });
 
   args.push(request.scope === "global" ? "-g" : "-p");
@@ -57,7 +61,7 @@ export function buildRemoveArgs(request: SkillRemoveRequest) {
   const args = ["skills", "remove", request.skillName];
 
   request.agents.forEach((agent) => {
-    args.push("--agent", agent.toLowerCase());
+    args.push("--agent", toAgentCliId(agent));
   });
 
   args.push(request.scope === "global" ? "-g" : "-p");
@@ -70,7 +74,7 @@ export function buildUpdateArgs(request: SkillUpdateRequest) {
   const args = ["skills", "update", request.skillName];
 
   request.agents.forEach((agent) => {
-    args.push("--agent", agent.toLowerCase());
+    args.push("--agent", toAgentCliId(agent));
   });
 
   args.push(request.scope === "global" ? "-g" : "-p");

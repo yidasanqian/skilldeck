@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { buildInstallArgs, buildRemoveArgs, buildUpdateArgs, formatCommand } from "./skills";
+import { buildInstallArgs, buildRemoveArgs, buildUpdateArgs, formatCommand, toAgentCliId } from "./skills";
+
+describe("toAgentCliId", () => {
+  it("normalizes display names to official CLI ids", () => {
+    expect(toAgentCliId("Claude Code")).toBe("claude-code");
+    expect(toAgentCliId("GitHub Copilot")).toBe("github-copilot");
+  });
+
+  it("trims and collapses separators", () => {
+    expect(toAgentCliId("  CodeArts   Agent  ")).toBe("codearts-agent");
+    expect(toAgentCliId("qwen_code")).toBe("qwen-code");
+  });
+});
 
 describe("buildInstallArgs", () => {
   it("includes source, skill flags, and scope", () => {
@@ -59,11 +71,11 @@ describe("buildInstallArgs", () => {
     expect(args[skillIndices[2] + 1]).toBe("c");
   });
 
-  it("lowercases agent names", () => {
+  it("normalizes agent names", () => {
     const args = buildInstallArgs({
       source: "repo",
       skillNames: ["x"],
-      agents: ["OpenClaw", "Claude-Code"],
+      agents: ["OpenClaw", "Claude Code"],
       scope: "global",
       copy: false,
     });
@@ -103,12 +115,12 @@ describe("buildRemoveArgs", () => {
   it("handles multiple agents", () => {
     const args = buildRemoveArgs({
       skillName: "x",
-      agents: ["Alpha", "BETA"],
+      agents: ["Claude Code", "BETA"],
       scope: "global",
     });
     const agentIndices = args.reduce<number[]>((acc, a, i) => (a === "--agent" ? [...acc, i] : acc), []);
     expect(agentIndices).toHaveLength(2);
-    expect(args[agentIndices[0] + 1]).toBe("alpha");
+    expect(args[agentIndices[0] + 1]).toBe("claude-code");
     expect(args[agentIndices[1] + 1]).toBe("beta");
   });
 });

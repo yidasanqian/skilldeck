@@ -776,7 +776,11 @@ fn skills_list_blocking(
 }
 
 fn build_add_args(request: &SkillInstallRequest) -> Vec<String> {
-    let mut args = vec!["skills".to_string(), "add".to_string(), request.source.clone()];
+    let mut args = vec![
+        "skills".to_string(),
+        "add".to_string(),
+        request.source.clone(),
+    ];
     for skill_name in &request.skill_names {
         args.push("--skill".to_string());
         args.push(skill_name.clone());
@@ -791,7 +795,11 @@ fn build_add_args(request: &SkillInstallRequest) -> Vec<String> {
 }
 
 fn build_remove_args(request: &SkillRemoveRequest) -> Vec<String> {
-    let mut args = vec!["skills".to_string(), "remove".to_string(), request.skill_name.clone()];
+    let mut args = vec![
+        "skills".to_string(),
+        "remove".to_string(),
+        request.skill_name.clone(),
+    ];
     append_agents(&mut args, &request.agents);
     args.push(request.scope.flag().to_string());
     args.push("-y".to_string());
@@ -799,7 +807,11 @@ fn build_remove_args(request: &SkillRemoveRequest) -> Vec<String> {
 }
 
 fn build_update_args(request: &SkillUpdateRequest) -> Vec<String> {
-    let mut args = vec!["skills".to_string(), "update".to_string(), request.skill_name.clone()];
+    let mut args = vec![
+        "skills".to_string(),
+        "update".to_string(),
+        request.skill_name.clone(),
+    ];
     append_agents(&mut args, &request.agents);
     args.push(request.scope.flag().to_string());
     args.push("-y".to_string());
@@ -870,6 +882,7 @@ fn project_cwd_for_scope(
 
 fn skills_remove_blocking(app: AppHandle, request: SkillRemoveRequest) -> SkillsMutationResponse {
     let args = build_remove_args(&request);
+    let agents = normalize_agents(&request.agents);
 
     let command = run_command_with_cwd_and_stream(
         args,
@@ -883,7 +896,7 @@ fn skills_remove_blocking(app: AppHandle, request: SkillRemoveRequest) -> Skills
         name: request.skill_name,
         source: String::new(),
         description: None,
-        agents: request.agents,
+        agents,
         scope: request.scope,
         updated_at: None,
     }];
@@ -893,6 +906,7 @@ fn skills_remove_blocking(app: AppHandle, request: SkillRemoveRequest) -> Skills
 
 fn skills_update_blocking(app: AppHandle, request: SkillUpdateRequest) -> SkillsMutationResponse {
     let args = build_update_args(&request);
+    let agents = normalize_agents(&request.agents);
 
     let command = run_command_with_cwd_and_stream(
         args,
@@ -906,7 +920,7 @@ fn skills_update_blocking(app: AppHandle, request: SkillUpdateRequest) -> Skills
         name: request.skill_name,
         source: String::new(),
         description: None,
-        agents: request.agents,
+        agents,
         scope: request.scope,
         updated_at: Some(now_iso()),
     }];
@@ -945,10 +959,27 @@ fn run_skills_raw_blocking(args: Vec<String>) -> Result<CommandResult, String> {
 }
 
 fn append_agents(args: &mut Vec<String>, agents: &[String]) {
-    for agent in agents {
+    for agent in normalize_agents(agents) {
         args.push("--agent".to_string());
-        args.push(agent.to_lowercase());
+        args.push(agent);
     }
+}
+
+fn agent_cli_id(agent: &str) -> String {
+    let lowercase = agent.trim().to_lowercase();
+    lowercase
+        .split(|ch: char| ch.is_whitespace() || ch == '_' || ch == '-')
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("-")
+}
+
+fn normalize_agents(agents: &[String]) -> Vec<String> {
+    agents
+        .iter()
+        .map(|agent| agent_cli_id(agent))
+        .filter(|agent| !agent.is_empty())
+        .collect()
 }
 
 fn read_last_selected_agents() -> Vec<String> {
@@ -1281,13 +1312,14 @@ fn parse_skill_record(
         &["updatedAt", "updated_at", "modifiedAt", "modified_at"],
     );
     let parsed_agents = if let Some(items) = item.get("agents").and_then(Value::as_array) {
-        items
+        let raw_agents = items
             .iter()
             .filter_map(Value::as_str)
             .map(str::to_string)
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+        normalize_agents(&raw_agents)
     } else {
-        agents.to_vec()
+        normalize_agents(agents)
     };
     let parsed_scope = string_field(item, &["scope"])
         .and_then(|value| match value.as_str() {
@@ -1541,19 +1573,28 @@ mod tests {
     #[test]
     fn string_field_returns_first_matching_key() {
         let v: serde_json::Value = serde_json::json!({ "name": "my-skill" });
-        assert_eq!(string_field(&v, &["name", "title"]).as_deref(), Some("my-skill"));
+        assert_eq!(
+            string_field(&v, &["name", "title"]).as_deref(),
+            Some("my-skill")
+        );
     }
 
     #[test]
     fn string_field_falls_back_to_second_key() {
         let v: serde_json::Value = serde_json::json!({ "title": "fallback" });
-        assert_eq!(string_field(&v, &["name", "title"]).as_deref(), Some("fallback"));
+        assert_eq!(
+            string_field(&v, &["name", "title"]).as_deref(),
+            Some("fallback")
+        );
     }
 
     #[test]
     fn string_field_ignores_whitespace_only_values() {
         let v: serde_json::Value = serde_json::json!({ "name": "   ", "title": "real" });
-        assert_eq!(string_field(&v, &["name", "title"]).as_deref(), Some("real"));
+        assert_eq!(
+            string_field(&v, &["name", "title"]).as_deref(),
+            Some("real")
+        );
     }
 
     #[test]
@@ -1595,6 +1636,17 @@ mod tests {
         let agents = vec!["claude-code".to_string()];
         let skills = parse_list_output(output, &Scope::Global, &agents).unwrap();
         assert_eq!(skills[0].agents, agents);
+    }
+
+    #[test]
+    fn parse_list_output_normalizes_display_agent_names() {
+        let output =
+            r#"[{ "name": "z", "source": "/p/z", "agents": ["Claude Code", "OpenClaw"] }]"#;
+        let skills = parse_list_output(output, &Scope::Global, &[]).unwrap();
+        assert_eq!(
+            skills[0].agents,
+            vec!["claude-code".to_string(), "openclaw".to_string()]
+        );
     }
 
     #[test]
@@ -1667,9 +1719,20 @@ mod tests {
     // ── append_agents ────────────────────────────────────────────────────────
 
     #[test]
-    fn append_agents_lowercases_names() {
+    fn agent_cli_id_normalizes_display_names() {
+        assert_eq!(agent_cli_id("Claude Code"), "claude-code");
+        assert_eq!(agent_cli_id("GitHub Copilot"), "github-copilot");
+        assert_eq!(agent_cli_id("  CodeArts   Agent  "), "codearts-agent");
+        assert_eq!(agent_cli_id("qwen_code"), "qwen-code");
+    }
+
+    #[test]
+    fn append_agents_normalizes_names() {
         let mut args: Vec<String> = vec!["skills".to_string(), "remove".to_string()];
-        append_agents(&mut args, &["OpenClaw".to_string(), "Claude-Code".to_string()]);
+        append_agents(
+            &mut args,
+            &["OpenClaw".to_string(), "Claude Code".to_string()],
+        );
         assert_eq!(args[2], "--agent");
         assert_eq!(args[3], "openclaw");
         assert_eq!(args[4], "--agent");
@@ -1680,6 +1743,13 @@ mod tests {
     fn append_agents_no_args_when_empty() {
         let mut args: Vec<String> = vec!["skills".to_string()];
         append_agents(&mut args, &[]);
+        assert_eq!(args.len(), 1);
+    }
+
+    #[test]
+    fn append_agents_skips_blank_names() {
+        let mut args: Vec<String> = vec!["skills".to_string()];
+        append_agents(&mut args, &["  ".to_string()]);
         assert_eq!(args.len(), 1);
     }
 
@@ -1713,7 +1783,11 @@ mod tests {
 
     #[test]
     fn project_cwd_for_scope_project_nonexistent_dir_errors() {
-        let result = project_cwd_for_scope(&Scope::Project, Some("/nonexistent/skilldeck-test-path"), "op");
+        let result = project_cwd_for_scope(
+            &Scope::Project,
+            Some("/nonexistent/skilldeck-test-path"),
+            "op",
+        );
         assert!(result.is_err());
     }
 
@@ -1721,7 +1795,10 @@ mod tests {
 
     #[test]
     fn first_nonempty_line_skips_blanks() {
-        assert_eq!(first_nonempty_line("\n\n  hello\nworld"), Some("hello".to_string()));
+        assert_eq!(
+            first_nonempty_line("\n\n  hello\nworld"),
+            Some("hello".to_string())
+        );
     }
 
     #[test]
@@ -1770,11 +1847,11 @@ mod tests {
     }
 
     #[test]
-    fn build_add_args_lowercases_agents() {
+    fn build_add_args_normalizes_agents() {
         let req = SkillInstallRequest {
             source: "repo".to_string(),
             skill_names: vec!["x".to_string()],
-            agents: vec!["OpenClaw".to_string()],
+            agents: vec!["Claude Code".to_string()],
             scope: Scope::Global,
             project_path: None,
             command_id: None,
@@ -1782,7 +1859,7 @@ mod tests {
         };
         let args = build_add_args(&req);
         let idx = args.iter().position(|a| a == "--agent").unwrap();
-        assert_eq!(args[idx + 1], "openclaw");
+        assert_eq!(args[idx + 1], "claude-code");
     }
 
     // ── build_remove_args ────────────────────────────────────────────────────
@@ -1802,16 +1879,16 @@ mod tests {
     }
 
     #[test]
-    fn build_remove_args_lowercases_agents() {
+    fn build_remove_args_normalizes_agents() {
         let req = SkillRemoveRequest {
             skill_name: "x".to_string(),
-            agents: vec!["OpenClaw".to_string()],
+            agents: vec!["Claude Code".to_string()],
             scope: Scope::Global,
             command_id: None,
         };
         let args = build_remove_args(&req);
         let idx = args.iter().position(|a| a == "--agent").unwrap();
-        assert_eq!(args[idx + 1], "openclaw");
+        assert_eq!(args[idx + 1], "claude-code");
     }
 
     #[test]
@@ -1846,16 +1923,15 @@ mod tests {
     }
 
     #[test]
-    fn build_update_args_lowercases_agents() {
+    fn build_update_args_normalizes_agents() {
         let req = SkillUpdateRequest {
             skill_name: "x".to_string(),
-            agents: vec!["WindSurf".to_string()],
+            agents: vec!["GitHub Copilot".to_string()],
             scope: Scope::Global,
             command_id: None,
         };
         let args = build_update_args(&req);
         let idx = args.iter().position(|a| a == "--agent").unwrap();
-        assert_eq!(args[idx + 1], "windsurf");
+        assert_eq!(args[idx + 1], "github-copilot");
     }
-
 }
