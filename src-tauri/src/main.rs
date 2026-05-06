@@ -1899,6 +1899,35 @@ mod tests {
     }
 
     #[test]
+    fn parse_project_list_output_from_official_cli() {
+        let output = r#"[{
+            "name": "frontend-design",
+            "path": "D:\\Develop\\CodeProjects\\skilldeck\\.agents\\skills\\frontend-design",
+            "scope": "project",
+            "agents": ["Codex", "Gemini CLI", "GitHub Copilot", "OpenCode"]
+        }]"#;
+
+        let skills = parse_list_output(output, &Scope::Project, &[]).unwrap();
+
+        assert_eq!(skills.len(), 1);
+        assert_eq!(skills[0].name, "frontend-design");
+        assert_eq!(
+            skills[0].source,
+            "D:\\Develop\\CodeProjects\\skilldeck\\.agents\\skills\\frontend-design"
+        );
+        assert!(matches!(skills[0].scope, Scope::Project));
+        assert_eq!(
+            skills[0].agents,
+            vec![
+                "codex".to_string(),
+                "gemini-cli".to_string(),
+                "github-copilot".to_string(),
+                "opencode".to_string()
+            ]
+        );
+    }
+
+    #[test]
     fn parse_list_output_accepts_alternate_name_keys() {
         for key in ["skill", "id", "title"] {
             let output = format!(r#"[{{ "{key}": "alt-name" }}]"#);

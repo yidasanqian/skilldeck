@@ -87,6 +87,10 @@ function loadLastProjectPath() {
   return window.localStorage.getItem(PROJECT_PATH_STORAGE_KEY) ?? "";
 }
 
+function persistLastProjectPath(path: string) {
+  window.localStorage.setItem(PROJECT_PATH_STORAGE_KEY, path);
+}
+
 function createPendingCommand(args: string[]): CommandResult {
   return {
     id: `pending-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -231,11 +235,16 @@ export default function App() {
   );
 
   const refreshInstalled = useCallback(
-    (scope: Scope) => {
-      void loadInstalled(scope, [], scope === "project" ? loadLastProjectPath() || undefined : undefined);
+    (scope: Scope, projectPath?: string) => {
+      const resolvedProjectPath = projectPath?.trim() || loadLastProjectPath() || undefined;
+      void loadInstalled(scope, [], scope === "project" ? resolvedProjectPath : undefined);
     },
     [loadInstalled],
   );
+
+  const updateInstalledProjectPath = useCallback((projectPath: string) => {
+    persistLastProjectPath(projectPath.trim());
+  }, []);
 
   const checkPaths = useCallback(
     (paths: string[]) => api.checkSymlinkPaths(paths),
@@ -519,8 +528,10 @@ export default function App() {
             loading={installedLoading}
             parsed={installedParsed}
             defaultScope={settings.defaultScope}
+            defaultProjectPath={loadLastProjectPath()}
             agentCatalog={agentCatalog}
             t={t}
+            onProjectPathChange={updateInstalledProjectPath}
             onRefresh={refreshInstalled}
             onCheckPaths={checkPaths}
             onRemove={requestRemove}

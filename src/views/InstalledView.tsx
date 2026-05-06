@@ -12,9 +12,11 @@ interface InstalledViewProps {
   loading: boolean;
   parsed: boolean;
   defaultScope: Scope;
+  defaultProjectPath: string;
   agentCatalog: AgentCatalogResponse;
   t: TFunction;
-  onRefresh: (scope: Scope) => void;
+  onProjectPathChange: (path: string) => void;
+  onRefresh: (scope: Scope, projectPath?: string) => void;
   onCheckPaths: (paths: string[]) => Promise<string[]>;
   onRemove: (skill: SkillRecord) => void;
   onUpdate: (skill: SkillRecord) => void;
@@ -103,14 +105,17 @@ export function InstalledView({
   loading,
   parsed,
   defaultScope,
+  defaultProjectPath,
   agentCatalog,
   t,
+  onProjectPathChange,
   onRefresh,
   onCheckPaths,
   onRemove,
   onUpdate,
 }: InstalledViewProps) {
   const [scope, setScope] = useState<Scope>(defaultScope);
+  const [projectPath, setProjectPath] = useState(defaultProjectPath);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   function toggleRow(id: string) {
     setExpandedRows((prev) => {
@@ -161,8 +166,13 @@ export function InstalledView({
   }, [skills, agentCatalog, onCheckPaths]);
 
   useEffect(() => {
-    onRefresh(scope);
-  }, [onRefresh, scope]);
+    onRefresh(scope, scope === "project" ? projectPath : undefined);
+  }, [onRefresh, projectPath, scope]);
+
+  function changeProjectPath(next: string) {
+    setProjectPath(next);
+    onProjectPathChange(next);
+  }
 
   return (
     <div className="page-stack">
@@ -186,6 +196,17 @@ export function InstalledView({
               <option value="project">{t("common.project")} -p</option>
             </select>
           </label>
+          {scope === "project" ? (
+            <label>
+              {t("install.projectPath")}
+              <input
+                type="text"
+                value={projectPath}
+                onChange={(event) => changeProjectPath(event.target.value)}
+                placeholder={t("install.projectPathPlaceholder")}
+              />
+            </label>
+          ) : null}
         </div>
         <p className="hint-text">{t("installed.scopeOnlyHint")}</p>
       </section>
