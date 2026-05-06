@@ -784,7 +784,7 @@ fn skills_list_blocking(
     args.push(scope.flag().to_string());
     append_agents(&mut args, &agents);
 
-    let project_cwd = match project_cwd_for_scope(&scope, project_path.as_deref(), "Project list") {
+    let project_cwd = match project_cwd_for_list_scope(&scope, project_path.as_deref()) {
         Ok(path) => path,
         Err(error) => {
             return SkillsListResponse {
@@ -941,6 +941,29 @@ fn project_cwd_for_scope(
     let project_path = project_path.map(str::trim).unwrap_or_default();
     if project_path.is_empty() {
         return Err(format!("{operation} requires a target project path."));
+    }
+
+    let path = PathBuf::from(project_path);
+    if !path.is_dir() {
+        return Err(format!("Project path is not a directory: {project_path}"));
+    }
+
+    Ok(Some(path))
+}
+
+fn project_cwd_for_list_scope(
+    scope: &Scope,
+    project_path: Option<&str>,
+) -> Result<Option<PathBuf>, String> {
+    if !matches!(scope, Scope::Project) {
+        return Ok(None);
+    }
+
+    let project_path = project_path.map(str::trim).unwrap_or_default();
+    if project_path.is_empty() {
+        return env::current_dir()
+            .map(Some)
+            .map_err(|error| format!("Project list failed to resolve current directory: {error}"));
     }
 
     let path = PathBuf::from(project_path);
@@ -2094,6 +2117,24 @@ mod tests {
     fn project_cwd_for_scope_project_none_path_errors() {
         let result = project_cwd_for_scope(&Scope::Project, None, "Test op");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn project_cwd_for_list_scope_project_none_uses_current_dir() {
+        let result = project_cwd_for_list_scope(&Scope::Project, None).unwrap();
+        assert_eq!(result, Some(env::current_dir().unwrap()));
+    }
+
+    #[test]
+    fn project_cwd_for_list_scope_project_empty_uses_current_dir() {
+        let result = project_cwd_for_list_scope(&Scope::Project, Some("  ")).unwrap();
+        assert_eq!(result, Some(env::current_dir().unwrap()));
+    }
+
+    #[test]
+    fn project_cwd_for_list_scope_global_returns_none() {
+        let result = project_cwd_for_list_scope(&Scope::Global, None);
+        assert!(matches!(result, Ok(None)));
     }
 
     #[test]
