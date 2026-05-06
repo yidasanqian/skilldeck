@@ -32,6 +32,8 @@ function findSkillsPackageRoot() {
     for (const name of names) {
       const candidate = path.join(dir, name);
       if (!fs.existsSync(candidate)) continue;
+      const packageFromBin = findPackageFromBinDir(dir);
+      if (packageFromBin) return packageFromBin;
       let real = fs.realpathSync(candidate);
       let current = path.dirname(real);
       while (current && current !== path.dirname(current)) {
@@ -47,6 +49,17 @@ function findSkillsPackageRoot() {
     }
   }
   throw new Error('Unable to locate the active official skills package from npx PATH');
+}
+
+function findPackageFromBinDir(dir) {
+  if (path.basename(dir) !== '.bin') return null;
+  const packageJson = path.join(path.dirname(dir), 'skills', 'package.json');
+  if (!fs.existsSync(packageJson)) return null;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(packageJson, 'utf8'));
+    if (parsed.name === 'skills') return path.dirname(packageJson);
+  } catch {}
+  return null;
 }
 
 function extractBalanced(source, marker) {
@@ -1664,6 +1677,72 @@ mod tests {
         assert!(is_npx_command("npx.cmd"));
         assert!(is_npx_command("C:\\Program Files\\nodejs\\npx.cmd"));
         assert!(!is_npx_command("node"));
+    }
+
+    #[test]
+    fn agent_catalog_script_resolves_npx_bin_package_root() {
+        let dir = env::temp_dir().join(format!("skilldeck-npx-bin-test-{}", command_id()));
+        let bin_dir = dir.join("node_modules").join(".bin");
+        let package_dir = dir.join("node_modules").join("skills");
+        fs::create_dir_all(&bin_dir).unwrap();
+        fs::create_dir_all(&package_dir).unwrap();
+        fs::write(bin_dir.join("skills.cmd"), "").unwrap();
+        fs::write(package_dir.join("package.json"), r#"{"name":"skills"}"#).unwrap();
+
+        let previous_path = env::var_os("PATH");
+        let node = resolve_node_for_test(&previous_path).unwrap_or_else(|| "node".to_string());
+        env::set_var("PATH", bin_dir.as_os_str());
+        let command = run_command(
+            vec![
+                "-e".to_string(),
+                format!(
+                    "const fs = require('fs'); const path = require('path'); {}\n{}\nconsole.log(findSkillsPackageRoot())",
+                    extract_js_function(AGENT_CATALOG_SCRIPT, "findPackageFromBinDir"),
+                    extract_js_function(AGENT_CATALOG_SCRIPT, "findSkillsPackageRoot"),
+                ),
+            ],
+            Some(&node),
+        );
+        if let Some(previous_path) = previous_path {
+            env::set_var("PATH", previous_path);
+        }
+
+        assert!(matches!(command.status, CommandStatus::Success));
+        assert_eq!(normalize_path_for_test(command.stdout.trim()), normalize_path_for_test(&package_dir.to_string_lossy()));
+        fs::remove_dir_all(dir).unwrap();
+    }
+
+    fn normalize_path_for_test(path: &str) -> String {
+        path.replace('\\', "/")
+    }
+
+    fn resolve_node_for_test(path: &Option<std::ffi::OsString>) -> Option<String> {
+        let path = path.as_ref()?;
+        for dir in env::split_paths(path) {
+            let candidate = dir.join(if cfg!(windows) { "node.exe" } else { "node" });
+            if candidate.is_file() {
+                return Some(candidate.to_string_lossy().to_string());
+            }
+        }
+        None
+    }
+
+    fn extract_js_function(source: &str, name: &str) -> String {
+        let marker = format!("function {name}");
+        let start = source.find(&marker).unwrap();
+        let open = source[start..].find('{').map(|index| start + index).unwrap();
+        let mut depth = 0;
+        for (offset, ch) in source[open..].char_indices() {
+            if ch == '{' {
+                depth += 1;
+            } else if ch == '}' {
+                depth -= 1;
+                if depth == 0 {
+                    return source[start..=open + offset].to_string();
+                }
+            }
+        }
+        panic!("missing function body for {name}");
     }
 
     #[test]
