@@ -14,9 +14,13 @@ use std::{
     thread,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use tauri::{AppHandle, Emitter};
 
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(120);
+#[cfg(windows)]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 const AGENT_CATALOG_SCRIPT: &str = r#"
 const fs = require('fs');
 const os = require('os');
@@ -608,14 +612,10 @@ fn check_environment_blocking() -> CheckEnvironmentResponse {
 fn skills_agent_catalog_blocking() -> AgentCatalogResponse {
     let command = run_command(
         vec![
-            "--yes".to_string(),
-            "--package".to_string(),
-            "skills".to_string(),
-            "node".to_string(),
             "-e".to_string(),
             AGENT_CATALOG_SCRIPT.to_string(),
         ],
-        None,
+        Some("node"),
     );
 
     if !matches!(command.status, CommandStatus::Success) {
@@ -1102,6 +1102,8 @@ fn run_command_with_cwd_and_stream(
         .env("PATH", augmented_path())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    #[cfg(windows)]
+    command.creation_flags(CREATE_NO_WINDOW);
     if let Some(current_dir) = current_dir {
         command.current_dir(current_dir);
     }
