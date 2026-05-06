@@ -178,7 +178,12 @@ export function InstalledView({
     <div className="page-stack">
       <section className="page-header">
         <div>
-          <h1>{t("installed.title")}</h1>
+          <div className="title-row">
+            <h1>{t("installed.title")}</h1>
+            <span className="title-badge">
+              {scope === "global" ? t("common.global") : t("common.project")} · {skills.length}
+            </span>
+          </div>
           <p>{t("installed.subtitle")}</p>
         </div>
         <button className="button button--primary" type="button" onClick={() => onRefresh(scope)} disabled={loading}>
