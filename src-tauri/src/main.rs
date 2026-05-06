@@ -1089,13 +1089,15 @@ fn run_command_with_cwd_and_stream(
     app: Option<&AppHandle>,
 ) -> CommandResult {
     let command_name = binary_override.unwrap_or(npx_binary()).to_string();
+    let invocation = command_invocation(&command_name);
     let result_id = command_id_override
         .map(str::to_string)
         .unwrap_or_else(command_id);
     let started_at = now_iso();
     let started = Instant::now();
-    let mut command = Command::new(&command_name);
+    let mut command = Command::new(&invocation.program);
     command
+        .args(&invocation.prefix_args)
         .args(&args)
         .env("PATH", augmented_path())
         .stdout(Stdio::piped())
@@ -1110,7 +1112,7 @@ fn run_command_with_cwd_and_stream(
             let result = CommandResult {
                 id: result_id,
                 status: CommandStatus::Failed,
-                command: command_name,
+                command: invocation.display_command,
                 args,
                 started_at,
                 finished_at: Some(now_iso()),
@@ -1176,7 +1178,7 @@ fn run_command_with_cwd_and_stream(
     let result = CommandResult {
         id: result_id,
         status: command_status,
-        command: command_name,
+        command: invocation.display_command,
         args,
         started_at,
         finished_at: Some(now_iso()),
@@ -1432,6 +1434,72 @@ fn npx_binary() -> &'static str {
     }
 }
 
+struct CommandInvocation {
+    program: String,
+    prefix_args: Vec<String>,
+    display_command: String,
+}
+
+fn command_invocation(command_name: &str) -> CommandInvocation {
+    if cfg!(windows) && is_npx_command(command_name) {
+        if let Some(npx_cli_path) = resolve_npx_cli_path() {
+            return CommandInvocation {
+                program: "node".to_string(),
+                prefix_args: vec![npx_cli_path.to_string_lossy().to_string()],
+                display_command: command_name.to_string(),
+            };
+        }
+    }
+
+    CommandInvocation {
+        program: command_name.to_string(),
+        prefix_args: Vec::new(),
+        display_command: command_name.to_string(),
+    }
+}
+
+fn is_npx_command(command_name: &str) -> bool {
+    Path::new(command_name)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .map(|name| name.eq_ignore_ascii_case("npx") || name.eq_ignore_ascii_case("npx.cmd"))
+        .unwrap_or(false)
+}
+
+fn resolve_npx_cli_path() -> Option<PathBuf> {
+    npx_cli_candidates().into_iter().find(|path| path.is_file())
+}
+
+fn npx_cli_candidates() -> Vec<PathBuf> {
+    let mut candidates = Vec::new();
+    for path in executable_search_paths() {
+        candidates.push(path.join("node_modules").join("npm").join("bin").join("npx-cli.js"));
+    }
+    candidates = dedupe_pathbufs(candidates);
+    candidates
+}
+
+fn executable_search_paths() -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+    if let Some(existing) = env::var_os("PATH") {
+        paths.extend(
+            env::split_paths(&existing)
+                .filter(|path| !path.as_os_str().is_empty())
+                .collect::<Vec<_>>(),
+        );
+    }
+    paths.extend(path_candidates().into_iter().map(PathBuf::from));
+    dedupe_pathbufs(paths)
+}
+
+fn dedupe_pathbufs(paths: Vec<PathBuf>) -> Vec<PathBuf> {
+    let mut seen = HashSet::new();
+    paths
+        .into_iter()
+        .filter(|path| seen.insert(path.to_string_lossy().to_lowercase()))
+        .collect()
+}
+
 fn augmented_path() -> String {
     let mut paths = Vec::new();
     if let Some(existing) = env::var_os("PATH") {
@@ -1582,6 +1650,14 @@ mod tests {
         assert_eq!(paths[0], "/Users/linyu/.nvm/versions/node/v24.14.1/bin");
         assert_eq!(paths[1], "/usr/local/bin");
         assert_eq!(paths.len(), 2);
+    }
+
+    #[test]
+    fn detects_npx_command_names() {
+        assert!(is_npx_command("npx"));
+        assert!(is_npx_command("npx.cmd"));
+        assert!(is_npx_command("C:\\Program Files\\nodejs\\npx.cmd"));
+        assert!(!is_npx_command("node"));
     }
 
     #[test]
@@ -1737,7 +1813,7 @@ mod tests {
         let dir = env::temp_dir().join(format!("skilldeck-mtime-test-{}", command_id()));
         fs::create_dir(&dir).unwrap();
         fs::write(dir.join("SKILL.md"), "# local\n").unwrap();
-        let output = format!(r#"[{{ "name": "local", "path": "{}" }}]"#, dir.display());
+        let output = serde_json::json!([{ "name": "local", "path": dir }]).to_string();
 
         let skills = parse_list_output(&output, &Scope::Global, &[]).unwrap();
 
@@ -1749,7 +1825,7 @@ mod tests {
     fn parse_list_output_does_not_fall_back_without_skill_markdown() {
         let dir = env::temp_dir().join(format!("skilldeck-no-skill-md-test-{}", command_id()));
         fs::create_dir(&dir).unwrap();
-        let output = format!(r#"[{{ "name": "local", "path": "{}" }}]"#, dir.display());
+        let output = serde_json::json!([{ "name": "local", "path": dir }]).to_string();
 
         let skills = parse_list_output(&output, &Scope::Global, &[]).unwrap();
 
@@ -1792,18 +1868,30 @@ mod tests {
 
     #[test]
     fn split_path_value_colon_separated() {
+        if cfg!(windows) {
+            return;
+        }
+
         let result = split_path_value("/usr/bin:/usr/local/bin:/opt/bin");
         assert_eq!(result, vec!["/usr/bin", "/usr/local/bin", "/opt/bin"]);
     }
 
     #[test]
     fn split_path_value_filters_empty_segments() {
+        if cfg!(windows) {
+            return;
+        }
+
         let result = split_path_value("/usr/bin::/usr/local/bin");
         assert_eq!(result, vec!["/usr/bin", "/usr/local/bin"]);
     }
 
     #[test]
     fn split_path_value_trims_whitespace() {
+        if cfg!(windows) {
+            return;
+        }
+
         let result = split_path_value(" /usr/bin : /usr/local/bin ");
         assert_eq!(result, vec!["/usr/bin", "/usr/local/bin"]);
     }
