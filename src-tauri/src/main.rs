@@ -612,10 +612,14 @@ fn check_environment_blocking() -> CheckEnvironmentResponse {
 fn skills_agent_catalog_blocking() -> AgentCatalogResponse {
     let command = run_command(
         vec![
+            "--yes".to_string(),
+            "--package".to_string(),
+            "skills".to_string(),
+            "node".to_string(),
             "-e".to_string(),
             AGENT_CATALOG_SCRIPT.to_string(),
         ],
-        Some("node"),
+        None,
     );
 
     if !matches!(command.status, CommandStatus::Success) {

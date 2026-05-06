@@ -1,6 +1,6 @@
 [package]
 name = "skilldeck"
-version = "0.1.6"
+version = "0.1.7"
 description = "A lightweight desktop UI wrapper for the official npx skills CLI"
 authors = ["SkillDeck"]
 edition = "2021"
