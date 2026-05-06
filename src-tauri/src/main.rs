@@ -623,17 +623,7 @@ fn check_environment_blocking() -> CheckEnvironmentResponse {
 }
 
 fn skills_agent_catalog_blocking() -> AgentCatalogResponse {
-    let command = run_command(
-        vec![
-            "--yes".to_string(),
-            "--package".to_string(),
-            "skills".to_string(),
-            "node".to_string(),
-            "-e".to_string(),
-            AGENT_CATALOG_SCRIPT.to_string(),
-        ],
-        None,
-    );
+    let command = run_agent_catalog_command();
 
     if !matches!(command.status, CommandStatus::Success) {
         return AgentCatalogResponse {
@@ -657,6 +647,33 @@ fn skills_agent_catalog_blocking() -> AgentCatalogResponse {
             )),
         },
     }
+}
+
+fn run_agent_catalog_command() -> CommandResult {
+    let script_path = env::temp_dir().join(format!("skilldeck-agent-catalog-{}.js", command_id()));
+    if let Err(error) = fs::write(&script_path, AGENT_CATALOG_SCRIPT) {
+        return failed_command_result(
+            vec!["skills".to_string(), "agent-catalog".to_string()],
+            format!("failed to write agent catalog script: {error}"),
+        );
+    }
+
+    let command = run_command(
+        build_agent_catalog_args(&script_path),
+        None,
+    );
+    let _ = fs::remove_file(script_path);
+    command
+}
+
+fn build_agent_catalog_args(script_path: &Path) -> Vec<String> {
+    vec![
+        "--yes".to_string(),
+        "--package".to_string(),
+        "skills".to_string(),
+        "node".to_string(),
+        script_path.to_string_lossy().to_string(),
+    ]
 }
 
 fn skills_install_defaults_blocking() -> InstallDefaultsResponse {
@@ -1710,6 +1727,17 @@ mod tests {
         assert!(matches!(command.status, CommandStatus::Success));
         assert_eq!(normalize_path_for_test(command.stdout.trim()), normalize_path_for_test(&package_dir.to_string_lossy()));
         fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn agent_catalog_command_uses_script_file_not_eval() {
+        let script_path = env::temp_dir().join("skilldeck-agent-catalog-test.js");
+        let args = build_agent_catalog_args(&script_path);
+
+        assert_eq!(args[0..4], ["--yes", "--package", "skills", "node"]);
+        assert_eq!(args[4], script_path.to_string_lossy());
+        assert!(!args.iter().any(|arg| arg == "-e"));
+        assert!(!args.iter().any(|arg| arg.contains("findSkillsPackageRoot")));
     }
 
     fn normalize_path_for_test(path: &str) -> String {
