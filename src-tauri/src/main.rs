@@ -866,12 +866,18 @@ fn build_add_args(request: &SkillInstallRequest) -> Vec<String> {
 }
 
 fn build_remove_args(request: &SkillRemoveRequest) -> Vec<String> {
+    build_remove_args_with_agents(request, true)
+}
+
+fn build_remove_args_with_agents(request: &SkillRemoveRequest, include_agents: bool) -> Vec<String> {
     let mut args = vec![
         "skills".to_string(),
         "remove".to_string(),
         request.skill_name.clone(),
     ];
-    append_agents(&mut args, &request.agents);
+    if include_agents {
+        append_agents(&mut args, &request.agents);
+    }
     args.push(request.scope.flag().to_string());
     args.push("-y".to_string());
     args
@@ -978,13 +984,14 @@ fn skills_remove_blocking(app: AppHandle, request: SkillRemoveRequest) -> Skills
     let args = build_remove_args(&request);
     let agents = normalize_agents(&request.agents);
 
-    let command = run_command_with_cwd_and_stream(
+    let mut command = run_command_with_cwd_and_stream(
         args,
         None,
         None,
         request.command_id.as_deref(),
         Some(&app),
     );
+    remove_unlinked_skill_on_windows(&request, &mut command, app);
     let affected = vec![SkillRecord {
         id: format!("{}:{:?}", request.skill_name, request.scope),
         name: request.skill_name,
@@ -996,6 +1003,98 @@ fn skills_remove_blocking(app: AppHandle, request: SkillRemoveRequest) -> Skills
     }];
 
     SkillsMutationResponse { affected, command }
+}
+
+fn remove_unlinked_skill_on_windows(
+    request: &SkillRemoveRequest,
+    command: &mut CommandResult,
+    app: AppHandle,
+) {
+    if !cfg!(windows)
+        || request.agents.is_empty()
+        || !matches!(command.status, CommandStatus::Success)
+        || !skill_has_no_linked_agents(request, None)
+    {
+        return;
+    }
+
+    let args = build_remove_args_with_agents(request, false);
+    let cleanup = run_command_with_cwd_and_stream(
+        args,
+        None,
+        None,
+        request.command_id.as_deref(),
+        Some(&app),
+    );
+    append_cleanup_command_output(command, &cleanup);
+}
+
+fn skill_has_no_linked_agents(request: &SkillRemoveRequest, project_cwd: Option<&Path>) -> bool {
+    let args = vec![
+        "skills".to_string(),
+        "list".to_string(),
+        "--json".to_string(),
+        request.scope.flag().to_string(),
+    ];
+    let command = run_command_with_cwd(args, None, project_cwd);
+    if !matches!(command.status, CommandStatus::Success) {
+        return false;
+    }
+
+    parse_list_output(&output_text(&command), &request.scope, &[])
+        .and_then(|skills| {
+            skills
+                .into_iter()
+                .find(|skill| skill.name.eq_ignore_ascii_case(&request.skill_name))
+        })
+        .is_some_and(|skill| skill.agents.is_empty())
+}
+
+fn append_cleanup_command_output(command: &mut CommandResult, cleanup: &CommandResult) {
+    command.stdout.push_str("\nSkillDeck Windows cleanup command:\n");
+    command.stdout.push_str(&format!(
+        "{}\n",
+        format_command_for_output(&cleanup.command, &cleanup.args)
+    ));
+
+    if !cleanup.stdout.trim().is_empty() {
+        command.stdout.push_str("\nSkillDeck Windows cleanup stdout:\n");
+        command.stdout.push_str(&cleanup.stdout);
+        if !cleanup.stdout.ends_with('\n') {
+            command.stdout.push('\n');
+        }
+    }
+
+    if !cleanup.stderr.trim().is_empty() {
+        command.stderr.push_str("\nSkillDeck Windows cleanup stderr:\n");
+        command.stderr.push_str(&cleanup.stderr);
+        if !cleanup.stderr.ends_with('\n') {
+            command.stderr.push('\n');
+        }
+    }
+
+    if !matches!(cleanup.status, CommandStatus::Success) {
+        command.status = cleanup.status.clone();
+        command.exit_code = cleanup.exit_code;
+        command.error = cleanup
+            .error
+            .clone()
+            .or_else(|| Some("SkillDeck Windows cleanup command failed".to_string()));
+    }
+}
+
+fn format_command_for_output(command: &str, args: &[String]) -> String {
+    std::iter::once(command.to_string())
+        .chain(args.iter().cloned())
+        .map(|arg| {
+            if arg.chars().any(char::is_whitespace) {
+                format!("{arg:?}")
+            } else {
+                arg
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn skills_update_blocking(app: AppHandle, request: SkillUpdateRequest) -> SkillsMutationResponse {
@@ -2290,6 +2389,21 @@ mod tests {
     }
 
     #[test]
+    fn build_remove_args_can_skip_agents_for_cleanup_uninstall() {
+        let req = SkillRemoveRequest {
+            skill_name: "x".to_string(),
+            agents: vec!["Claude Code".to_string()],
+            scope: Scope::Global,
+            command_id: None,
+        };
+        let args = build_remove_args_with_agents(&req, false);
+        assert_eq!(&args[..3], &["skills", "remove", "x"]);
+        assert!(!args.contains(&"--agent".to_string()));
+        assert!(args.contains(&"-g".to_string()));
+        assert!(args.contains(&"-y".to_string()));
+    }
+
+    #[test]
     fn build_remove_args_project_scope() {
         let req = SkillRemoveRequest {
             skill_name: "x".to_string(),
@@ -2300,6 +2414,51 @@ mod tests {
         let args = build_remove_args(&req);
         assert!(args.contains(&"-p".to_string()));
         assert!(!args.contains(&"-g".to_string()));
+    }
+
+    #[test]
+    fn append_cleanup_command_output_includes_cleanup_command() {
+        let mut command = CommandResult {
+            id: "primary".to_string(),
+            status: CommandStatus::Success,
+            command: "npx.cmd".to_string(),
+            args: vec!["skills".to_string(), "remove".to_string()],
+            started_at: now_iso(),
+            finished_at: Some(now_iso()),
+            duration_ms: Some(1),
+            exit_code: Some(0),
+            stdout: "primary stdout\n".to_string(),
+            stderr: String::new(),
+            error: None,
+        };
+        let cleanup = CommandResult {
+            id: "cleanup".to_string(),
+            status: CommandStatus::Success,
+            command: "npx.cmd".to_string(),
+            args: vec![
+                "skills".to_string(),
+                "remove".to_string(),
+                "x".to_string(),
+                "-g".to_string(),
+                "-y".to_string(),
+            ],
+            started_at: now_iso(),
+            finished_at: Some(now_iso()),
+            duration_ms: Some(1),
+            exit_code: Some(0),
+            stdout: "cleanup stdout\n".to_string(),
+            stderr: String::new(),
+            error: None,
+        };
+
+        append_cleanup_command_output(&mut command, &cleanup);
+
+        assert!(command
+            .stdout
+            .contains("SkillDeck Windows cleanup command:"));
+        assert!(command.stdout.contains("npx.cmd skills remove x -g -y"));
+        assert!(command.stdout.contains("cleanup stdout"));
+        assert!(matches!(command.status, CommandStatus::Success));
     }
 
     // ── build_update_args ────────────────────────────────────────────────────
