@@ -2,7 +2,7 @@
 
 # SkillDeck
 
-A cross-platform desktop UI for the official `npx skills` CLI.
+The desktop GUI for the open agent skills tool — `npx skills`.
 
 [![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB?logo=tauri&logoColor=white)](https://tauri.app/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111111)](https://react.dev/)
@@ -16,14 +16,14 @@ A cross-platform desktop UI for the official `npx skills` CLI.
 
 </div>
 
-SkillDeck helps you search, install, inspect, update, and remove AI Agent skills.
+SkillDeck is a cross-platform desktop GUI for `npx skills`, the open agent skills tool. It helps you search, install, inspect, update, remove, and troubleshoot AI Agent skills from a visual desktop interface.
 
-Upstream: official CLI [vercel-labs/skills](https://github.com/vercel-labs/skills), skills directory [skills.sh](https://skills.sh).
+Upstream: the open agent skills tool — `npx skills`, official CLI [vercel-labs/skills](https://github.com/vercel-labs/skills), skills directory [skills.sh](https://skills.sh).
 
 ## Why SkillDeck
 
 - **Cross-platform desktop app**: built with Tauri v2 for macOS, Windows, and Linux.
-- **Close to the official CLI**: executes the official `npx skills` commands instead of redefining install behavior.
+- **Built for `npx skills`**: provides a desktop GUI for the open agent skills tool while executing the official `npx skills` commands instead of redefining install behavior.
 - **Explicit install target**: project-scoped installs require a concrete target project directory, so skills are not accidentally installed into the app directory.
 - **Safer Agent selection**: only detected Agents are preselected; unavailable targets are not selected automatically.
 - **Visible command execution**: installation opens the command log and streams stdout / stderr in real time.

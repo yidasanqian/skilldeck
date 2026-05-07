@@ -2,7 +2,7 @@
 
 # SkillDeck
 
-跨平台的官方 `npx skills` CLI 桌面管理界面。
+The desktop GUI for the open agent skills tool — `npx skills`.
 
 [![Tauri](https://img.shields.io/badge/Tauri-v2-24C8DB?logo=tauri&logoColor=white)](https://tauri.app/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111111)](https://react.dev/)
@@ -14,15 +14,15 @@
 
 </div>
 
-SkillDeck 用于搜索、安装、查看、更新和移除 AI Agent skills。
+SkillDeck 是 `npx skills` 的跨平台桌面图形界面。`npx skills` 是 The open agent skills tool，SkillDeck 在此基础上提供可视化的 AI Agent skills 搜索、安装、查看、更新、移除与命令日志能力。
 
-上游项目：官方 CLI [vercel-labs/skills](https://github.com/vercel-labs/skills)，技能目录 [skills.sh](https://skills.sh)。
+上游项目：The open agent skills tool — `npx skills`，官方 CLI [vercel-labs/skills](https://github.com/vercel-labs/skills)，技能目录 [skills.sh](https://skills.sh)。
 
 ![SkillDeck Preview](assets/preview-cn.png)
 ## 为什么选择 SkillDeck
 
 - **跨平台桌面体验**：基于 Tauri v2 构建，面向 macOS、Windows 和 Linux 发布。
-- **贴近官方 CLI**：底层仍执行官方 `npx skills` 命令，不重新定义安装语义。
+- **面向 `npx skills`**：作为 The open agent skills tool 的桌面 GUI，底层仍执行官方 `npx skills` 命令，不重新定义安装语义。
 - **安装目标明确**：项目范围安装必须选择具体项目目录，避免误装到当前 App 目录。
 - **Agent 选择更安全**：只默认选择已检测到的 Agent，未检测到的目标不会被自动选中。
 - **命令过程可见**：安装开始后自动进入日志页，并实时显示 stdout / stderr。

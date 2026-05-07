@@ -106,7 +106,9 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "SkillDeck ${{ github.ref_name }}"
           releaseBody: |
-            SkillDeck desktop builds.
+            SkillDeck is the desktop GUI for the open agent skills tool — npx skills.
+
+            Use SkillDeck to search, install, inspect, update, remove, and troubleshoot AI agent skills for Claude, Codex, Cursor, and other supported agents from a cross-platform desktop interface.
 
             Release bundles are built by GitHub Actions. Because the project has not yet integrated platform code signing and notarization, operating systems may show warnings such as "unverified developer" or "unknown publisher". This means the OS cannot verify the publisher identity; only download builds from this repository's GitHub Releases, and continue only after confirming the source is trusted.
 
