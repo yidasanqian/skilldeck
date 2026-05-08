@@ -991,7 +991,7 @@ fn skills_remove_blocking(app: AppHandle, request: SkillRemoveRequest) -> Skills
         request.command_id.as_deref(),
         Some(&app),
     );
-    remove_unlinked_skill_on_windows(&request, &mut command, app);
+    remove_unlinked_skill(&request, &mut command, app);
     let affected = vec![SkillRecord {
         id: format!("{}:{:?}", request.skill_name, request.scope),
         name: request.skill_name,
@@ -1005,13 +1005,12 @@ fn skills_remove_blocking(app: AppHandle, request: SkillRemoveRequest) -> Skills
     SkillsMutationResponse { affected, command }
 }
 
-fn remove_unlinked_skill_on_windows(
+fn remove_unlinked_skill(
     request: &SkillRemoveRequest,
     command: &mut CommandResult,
     app: AppHandle,
 ) {
-    if !cfg!(windows)
-        || request.agents.is_empty()
+    if request.agents.is_empty()
         || !matches!(command.status, CommandStatus::Success)
         || !skill_has_no_linked_agents(request, None)
     {
@@ -1051,14 +1050,14 @@ fn skill_has_no_linked_agents(request: &SkillRemoveRequest, project_cwd: Option<
 }
 
 fn append_cleanup_command_output(command: &mut CommandResult, cleanup: &CommandResult) {
-    command.stdout.push_str("\nSkillDeck Windows cleanup command:\n");
+    command.stdout.push_str("\nSkillDeck cleanup command:\n");
     command.stdout.push_str(&format!(
         "{}\n",
         format_command_for_output(&cleanup.command, &cleanup.args)
     ));
 
     if !cleanup.stdout.trim().is_empty() {
-        command.stdout.push_str("\nSkillDeck Windows cleanup stdout:\n");
+        command.stdout.push_str("\nSkillDeck cleanup stdout:\n");
         command.stdout.push_str(&cleanup.stdout);
         if !cleanup.stdout.ends_with('\n') {
             command.stdout.push('\n');
@@ -1066,7 +1065,7 @@ fn append_cleanup_command_output(command: &mut CommandResult, cleanup: &CommandR
     }
 
     if !cleanup.stderr.trim().is_empty() {
-        command.stderr.push_str("\nSkillDeck Windows cleanup stderr:\n");
+        command.stderr.push_str("\nSkillDeck cleanup stderr:\n");
         command.stderr.push_str(&cleanup.stderr);
         if !cleanup.stderr.ends_with('\n') {
             command.stderr.push('\n');
@@ -1079,7 +1078,7 @@ fn append_cleanup_command_output(command: &mut CommandResult, cleanup: &CommandR
         command.error = cleanup
             .error
             .clone()
-            .or_else(|| Some("SkillDeck Windows cleanup command failed".to_string()));
+            .or_else(|| Some("SkillDeck cleanup command failed".to_string()));
     }
 }
 
@@ -2455,7 +2454,7 @@ mod tests {
 
         assert!(command
             .stdout
-            .contains("SkillDeck Windows cleanup command:"));
+            .contains("SkillDeck cleanup command:"));
         assert!(command.stdout.contains("npx.cmd skills remove x -g -y"));
         assert!(command.stdout.contains("cleanup stdout"));
         assert!(matches!(command.status, CommandStatus::Success));
