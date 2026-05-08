@@ -76,7 +76,7 @@
   <div class="container">
     <div class="hero-badge">
       <span class="dot"></span>
-      v0.1.14 · macOS · Windows · Linux
+      <span id="versionBadge">macOS · Windows · Linux</span>
     </div>
 
     <h1 data-i18n="hero.title.html">为 <span>Agent Skills</span> 打造的<br />桌面图形界面</h1>
@@ -361,6 +361,17 @@ document.getElementById('langToggle').addEventListener('click', () => {
   currentLang = currentLang === 'zh' ? 'en' : 'zh';
   applyLang(currentLang);
 });
+
+// Fetch latest release version from GitHub API
+fetch('https://api.github.com/repos/yidasanqian/skilldeck/releases/latest')
+  .then(r => r.json())
+  .then(data => {
+    if (data.tag_name) {
+      document.getElementById('versionBadge').textContent =
+        data.tag_name + ' · macOS · Windows · Linux';
+    }
+  })
+  .catch(() => {});
 
 // Intersection observer for fade-in
 const observer = new IntersectionObserver((entries) => {
