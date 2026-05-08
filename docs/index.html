@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkillDeck — npx skills 桌面图形界面</title>
+  <meta name="description" content="SkillDeck 是 npx skills（open agent skills tool）的跨平台桌面图形界面。可视化浏览、安装、更新、移除 Claude、Codex、Cursor 等 AI Agent 技能，并实时查看命令日志。" />
+  <meta name="keywords" content="SkillDeck, npx skills, AI agent skills, Claude Code, Codex, Cursor, Tauri, 桌面应用, skill 管理器" />
+  <meta name="author" content="yidasanqian" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://yidasanqian.github.io/skilldeck/" />
+  <meta property="og:title" content="SkillDeck — npx skills 桌面图形界面" />
+  <meta property="og:description" content="跨平台桌面 GUI，可视化管理 AI Agent 技能 — 浏览、安装、更新、移除，实时命令日志。" />
+  <meta property="og:image" content="https://yidasanqian.github.io/skilldeck/assets/preview-cn.png" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="SkillDeck — npx skills 桌面图形界面" />
+  <meta name="twitter:description" content="跨平台桌面 GUI，管理 Claude、Codex、Cursor 等 AI Agent 技能。" />
+  <meta name="twitter:image" content="https://yidasanqian.github.io/skilldeck/assets/preview-cn.png" />
+
+  <link rel="canonical" href="https://yidasanqian.github.io/skilldeck/" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%235b8af7'/><text x='16' y='23' text-anchor='middle' font-family='system-ui' font-size='20' font-weight='800' fill='white'>S</text></svg>" />
+
+  <style>
+    .lang-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font);
+      line-height: 1;
+    }
+    .lang-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .lang-btn .lang-flag { font-size: 15px; line-height: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ── -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="8" fill="#5b8af7"/>
+        <text x="16" y="23" text-anchor="middle" font-family="system-ui" font-size="20" font-weight="800" fill="white">S</text>
+      </svg>
+      SkillDeck
+    </div>
+    <div class="nav-links">
+      <a href="#features" data-i18n="nav.features">功能</a>
+      <a href="#install" data-i18n="nav.install">安装</a>
+      <a href="https://github.com/yidasanqian/skilldeck" target="_blank" rel="noopener">GitHub</a>
+      <button class="lang-btn" id="langToggle" aria-label="Switch language">
+        <span class="lang-flag">🇺🇸</span>
+        <span id="langLabel">EN</span>
+      </button>
+      <a href="https://github.com/yidasanqian/skilldeck/releases" class="btn btn-primary" target="_blank" rel="noopener" data-i18n="nav.download">下载</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">
+      <span class="dot"></span>
+      v0.1.14 · macOS · Windows · Linux
+    </div>
+
+    <h1 data-i18n="hero.title.html">为 <span>Agent Skills</span> 打造的<br />桌面图形界面</h1>
+
+    <p class="hero-desc" data-i18n="hero.desc.html">
+      SkillDeck 为 <code style="background:#1e2230;padding:2px 7px;border-radius:5px;font-size:0.9em">npx skills</code> 提供精致的可视化操作界面——浏览、安装、更新、移除适用于 Claude、Codex、Cursor 等 AI Agent 的技能，并实时查看命令日志。
+    </p>
+
+    <div class="hero-cta">
+      <a href="https://github.com/yidasanqian/skilldeck/releases" class="btn btn-primary btn-lg" target="_blank" rel="noopener">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span data-i18n="hero.cta.download">免费下载</span>
+      </a>
+      <a href="https://github.com/yidasanqian/skilldeck" class="btn btn-secondary btn-lg" target="_blank" rel="noopener">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        <span data-i18n="hero.cta.github">查看源码</span>
+      </a>
+    </div>
+
+    <div class="screenshot-wrap fade-in">
+      <img id="screenshot" src="assets/preview-cn.png" alt="SkillDeck 应用截图" loading="eager" />
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ── -->
+<section id="features">
+  <div class="container">
+    <div class="features-header fade-in">
+      <div class="section-label" data-i18n="features.label">功能特性</div>
+      <h2 class="section-title" data-i18n="features.title">一站式管理 Agent 技能的全部流程</h2>
+      <p class="section-desc" data-i18n="features.desc">一个应用，覆盖 AI Agent 技能从搜索到卸载的完整生命周期。</p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🔍</div>
+        <h3 data-i18n="feat.search.title">搜索与发现</h3>
+        <p data-i18n="feat.search.desc">基于 <code style="font-size:12px">npx skills find</code> 搜索完整技能目录，一目了然地查看描述、源仓库和兼容性。</p>
+      </div>
+
+      <div class="feature-card fade-in">
+        <div class="feature-icon">📦</div>
+        <h3 data-i18n="feat.install.title">全局 & 项目范围安装</h3>
+        <p data-i18n="feat.install.desc">支持全局安装或指定项目目录安装。项目范围安装需显式选择目标路径，防止误写入。</p>
+      </div>
+
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🤖</div>
+        <h3 data-i18n="feat.agent.title">多 Agent 支持</h3>
+        <p data-i18n="feat.agent.desc">读取官方 Agent 目录，仅展示本机已检测到的 Agent，未检测到的目标不会被默认选中。</p>
+      </div>
+
+      <div class="feature-card fade-in">
+        <div class="feature-icon">📜</div>
+        <h3 data-i18n="feat.log.title">实时命令日志</h3>
+        <p data-i18n="feat.log.desc">每次安装、更新或移除都实时流式展示 stdout/stderr，日志同步写入系统应用日志目录。</p>
+      </div>
+
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🔄</div>
+        <h3 data-i18n="feat.update.title">更新与移除</h3>
+        <p data-i18n="feat.update.desc">查看全部已安装技能，检查更新，一键干净移除——无需打开终端。</p>
+      </div>
+
+      <div class="feature-card fade-in">
+        <div class="feature-icon">🌐</div>
+        <h3 data-i18n="feat.i18n.title">双语界面</h3>
+        <p data-i18n="feat.i18n.desc">完整的中文与英文界面支持，无需重启即可切换语言。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Install ── -->
+<section id="install" class="install">
+  <div class="container">
+    <div class="install-inner">
+      <div class="install-desc fade-in">
+        <div class="section-label" data-i18n="install.label">快速开始</div>
+        <h2 class="section-title" data-i18n="install.title">下载适合你平台的版本</h2>
+        <p class="section-desc" data-i18n="install.desc">
+          macOS、Windows、Linux 均提供预构建安装包。需要系统已安装 Node.js 和 npx。
+        </p>
+        <div class="platform-links" style="margin-top:28px">
+          <a href="https://github.com/yidasanqian/skilldeck/releases" class="platform-btn" target="_blank" rel="noopener">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 814 1000"><path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-33.7-155.3-101.9C156 403.4 116 279.5 116 161c0-179.9 117.3-275 232.9-275 61.1 0 111.9 40.2 149.9 40.2 36 0 92.4-42.4 160.9-42.4 16.9 0 119.9 1.3 189.3 91.4zM469.3 107.9c-35.3 47.8-50.3 95.7-50.3 143.6 0 71.9 28.7 148.1 89.7 192.6 28.7 20.6 59.3 31.6 90.6 31.6 18.1 0 35-5.5 49.5-14.5-33.9-103.1-99.7-182.8-179.5-253.3z"/></svg>
+            macOS
+          </a>
+          <a href="https://github.com/yidasanqian/skilldeck/releases" class="platform-btn" target="_blank" rel="noopener">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 88 88"><path d="M0 0h42v42H0zm46 0h42v42H46zM0 46h42v42H0zm46 0h42v42H46z"/></svg>
+            Windows
+          </a>
+          <a href="https://github.com/yidasanqian/skilldeck/releases" class="platform-btn" target="_blank" rel="noopener">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12.504 0c-.155 0-.315.008-.48.021C7.576.336 3.609 3.5 1.888 7.964c-.494 1.314-.727 2.695-.727 4.086 0 3.29 1.287 6.495 3.671 8.845C6.998 22.949 9.682 24 12.504 24c2.823 0 5.507-1.051 7.673-3.105 2.384-2.35 3.671-5.555 3.671-8.845 0-1.391-.233-2.772-.727-4.086C21.4 3.5 17.432.336 13.008.021 12.839.007 12.672 0 12.504 0zm.009 1.5c2.492 0 4.862.924 6.66 2.607 1.804 1.686 2.864 4.01 2.864 6.393 0 2.382-1.06 4.707-2.864 6.392-1.798 1.683-4.168 2.607-6.66 2.607-2.492 0-4.862-.924-6.66-2.607-1.804-1.685-2.864-4.01-2.864-6.392 0-2.382 1.06-4.707 2.864-6.393C7.651 2.424 10.021 1.5 12.513 1.5z"/></svg>
+            Linux
+          </a>
+        </div>
+      </div>
+
+      <div class="fade-in">
+        <div class="code-block">
+          <div class="code-line code-comment" data-i18n="code.prereq"># 前置要求</div>
+          <div class="code-line"><span class="code-cmd">node</span> <span class="code-highlight">--version</span>  <span class="code-comment" data-i18n="code.nodeReq"># 需要 Node.js</span></div>
+          <br/>
+          <div class="code-line code-comment" data-i18n="code.skillsCli"># 启动 skills CLI</div>
+          <div class="code-line"><span class="code-cmd">npx</span> <span class="code-string">skills</span> <span class="code-highlight">list</span></div>
+          <br/>
+          <div class="code-line code-comment" data-i18n="code.then"># 然后打开 SkillDeck 享用 GUI ↑</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Upstream ecosystem ── -->
+<section id="ecosystem">
+  <div class="container">
+    <div class="fade-in">
+      <div class="section-label" data-i18n="eco.label">生态系统</div>
+      <h2 class="section-title" data-i18n="eco.title">构建于 open agent skills 生态之上</h2>
+      <p class="section-desc" data-i18n="eco.desc">SkillDeck 是 GUI 封装层，所有操作均委托给官方 CLI 执行，不重新定义安装语义。</p>
+    </div>
+
+    <div class="upstream-cards">
+      <a href="https://github.com/vercel-labs/skills" class="upstream-card fade-in" target="_blank" rel="noopener">
+        <div class="upstream-card-icon" style="background:#1e2230">⚡</div>
+        <div>
+          <h4>vercel-labs/skills</h4>
+          <p data-i18n="eco.skills">官方 open agent skills CLI —— SkillDeck 底层引擎。</p>
+        </div>
+      </a>
+
+      <a href="https://skills.sh" class="upstream-card fade-in" target="_blank" rel="noopener">
+        <div class="upstream-card-icon" style="background:#1e2230">🗂</div>
+        <div>
+          <h4>skills.sh</h4>
+          <p data-i18n="eco.catalog">技能目录站，在线浏览所有可用 Agent 技能。</p>
+        </div>
+      </a>
+
+      <a href="https://github.com/yidasanqian/skilldeck" class="upstream-card fade-in" target="_blank" rel="noopener">
+        <div class="upstream-card-icon" style="background:#1e2230">🖥</div>
+        <div>
+          <h4>yidasanqian/skilldeck</h4>
+          <p data-i18n="eco.source">SkillDeck 源码 —— Tauri v2 + React 19 + Rust，MIT 开源，欢迎 PR。</p>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div>© 2025 SkillDeck · MIT License</div>
+      <div class="footer-links">
+        <a href="https://github.com/yidasanqian/skilldeck" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/yidasanqian/skilldeck/releases" target="_blank" rel="noopener" data-i18n="footer.releases">发布版本</a>
+        <a href="https://github.com/yidasanqian/skilldeck/issues" target="_blank" rel="noopener" data-i18n="footer.issues">问题反馈</a>
+        <a href="https://skills.sh" target="_blank" rel="noopener">skills.sh</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+const i18n = {
+  zh: {
+    'nav.features': '功能',
+    'nav.install': '安装',
+    'nav.download': '下载',
+    'hero.title.html': '为 <span>Agent Skills</span> 打造的<br />桌面图形界面',
+    'hero.desc.html': 'SkillDeck 为 <code style="background:#1e2230;padding:2px 7px;border-radius:5px;font-size:0.9em">npx skills</code> 提供精致的可视化操作界面——浏览、安装、更新、移除适用于 Claude、Codex、Cursor 等 AI Agent 的技能，并实时查看命令日志。',
+    'hero.cta.download': '免费下载',
+    'hero.cta.github': '查看源码',
+    'features.label': '功能特性',
+    'features.title': '一站式管理 Agent 技能的全部流程',
+    'features.desc': '一个应用，覆盖 AI Agent 技能从搜索到卸载的完整生命周期。',
+    'feat.search.title': '搜索与发现',
+    'feat.search.desc': '基于 <code style="font-size:12px">npx skills find</code> 搜索完整技能目录，一目了然地查看描述、源仓库和兼容性。',
+    'feat.install.title': '全局 & 项目范围安装',
+    'feat.install.desc': '支持全局安装或指定项目目录安装。项目范围安装需显式选择目标路径，防止误写入。',
+    'feat.agent.title': '多 Agent 支持',
+    'feat.agent.desc': '读取官方 Agent 目录，仅展示本机已检测到的 Agent，未检测到的目标不会被默认选中。',
+    'feat.log.title': '实时命令日志',
+    'feat.log.desc': '每次安装、更新或移除都实时流式展示 stdout/stderr，日志同步写入系统应用日志目录。',
+    'feat.update.title': '更新与移除',
+    'feat.update.desc': '查看全部已安装技能，检查更新，一键干净移除——无需打开终端。',
+    'feat.i18n.title': '双语界面',
+    'feat.i18n.desc': '完整的中文与英文界面支持，无需重启即可切换语言。',
+    'install.label': '快速开始',
+    'install.title': '下载适合你平台的版本',
+    'install.desc': 'macOS、Windows、Linux 均提供预构建安装包。需要系统已安装 Node.js 和 npx。',
+    'code.prereq': '# 前置要求',
+    'code.nodeReq': '# 需要 Node.js',
+    'code.skillsCli': '# 启动 skills CLI',
+    'code.then': '# 然后打开 SkillDeck 享用 GUI ↑',
+    'eco.label': '生态系统',
+    'eco.title': '构建于 open agent skills 生态之上',
+    'eco.desc': 'SkillDeck 是 GUI 封装层，所有操作均委托给官方 CLI 执行，不重新定义安装语义。',
+    'eco.skills': '官方 open agent skills CLI —— SkillDeck 底层引擎。',
+    'eco.catalog': '技能目录站，在线浏览所有可用 Agent 技能。',
+    'eco.source': 'SkillDeck 源码 —— Tauri v2 + React 19 + Rust，MIT 开源，欢迎 PR。',
+    'footer.releases': '发布版本',
+    'footer.issues': '问题反馈',
+  },
+  en: {
+    'nav.features': 'Features',
+    'nav.install': 'Install',
+    'nav.download': 'Download',
+    'hero.title.html': 'The Desktop GUI for<br /><span>Agent Skills</span>',
+    'hero.desc.html': 'SkillDeck puts a polished interface on top of <code style="background:#1e2230;padding:2px 7px;border-radius:5px;font-size:0.9em">npx skills</code> — browse, install, update, and remove AI agent skills for Claude, Codex, Cursor, and more, with real-time command logs.',
+    'hero.cta.download': 'Download Free',
+    'hero.cta.github': 'View on GitHub',
+    'features.label': 'Features',
+    'features.title': 'Everything you need to manage agent skills',
+    'features.desc': 'One app to handle the full lifecycle of AI agent skills across all your projects and agents.',
+    'feat.search.title': 'Search & Discover',
+    'feat.search.desc': 'Search the full skills catalog powered by <code style="font-size:12px">npx skills find</code>. See descriptions, source repos, and compatibility at a glance.',
+    'feat.install.title': 'Global & Project Installs',
+    'feat.install.desc': 'Install skills globally or scoped to a specific project directory. Project-scoped installs require an explicit path to prevent accidental writes.',
+    'feat.agent.title': 'Multi-Agent Support',
+    'feat.agent.desc': 'Reads the official agent catalog. Only shows agents detected on your machine — no phantom targets selected by default.',
+    'feat.log.title': 'Real-time Command Logs',
+    'feat.log.desc': 'Every install, update, or remove streams stdout/stderr live. Logs are also persisted to the system app log directory via Tauri\'s official log plugin.',
+    'feat.update.title': 'Update & Remove',
+    'feat.update.desc': 'View all installed skills, check for updates, and cleanly remove skills — all without touching the terminal.',
+    'feat.i18n.title': 'Bilingual UI',
+    'feat.i18n.desc': 'Full Chinese and English interface support. Switch languages without restarting the app.',
+    'install.label': 'Get Started',
+    'install.title': 'Download for your platform',
+    'install.desc': 'Pre-built binaries are available for macOS, Windows, and Linux. Requires Node.js and npx on your system.',
+    'code.prereq': '# Prerequisites',
+    'code.nodeReq': '# Node.js required',
+    'code.skillsCli': '# Launch the skills CLI',
+    'code.then': '# Then open SkillDeck for a GUI ↑',
+    'eco.label': 'Ecosystem',
+    'eco.title': 'Built on the open agent skills ecosystem',
+    'eco.desc': 'SkillDeck is a GUI wrapper — it delegates all operations to the official CLI. No reimplemented semantics.',
+    'eco.skills': 'The official open agent skills CLI — the engine SkillDeck wraps.',
+    'eco.catalog': 'The skills catalog — browse all available agent skills on the web.',
+    'eco.source': 'SkillDeck source — Tauri v2 + React 19 + Rust. MIT licensed, PRs welcome.',
+    'footer.releases': 'Releases',
+    'footer.issues': 'Issues',
+  }
+};
+
+let currentLang = 'zh';
+
+function applyLang(lang) {
+  const dict = i18n[lang];
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (!dict[key]) return;
+    if (key.endsWith('.html')) {
+      el.innerHTML = dict[key];
+    } else {
+      el.textContent = dict[key];
+    }
+  });
+
+  // screenshot
+  document.getElementById('screenshot').src = lang === 'zh' ? 'assets/preview-cn.png' : 'assets/preview-en.png';
+  document.getElementById('screenshot').alt = lang === 'zh' ? 'SkillDeck 应用截图' : 'SkillDeck application screenshot';
+
+  // html lang attr + title
+  document.documentElement.lang = lang;
+  document.title = lang === 'zh'
+    ? 'SkillDeck — npx skills 桌面图形界面'
+    : 'SkillDeck — Desktop GUI for npx skills';
+
+  // button label
+  const flag = lang === 'zh' ? '🇺🇸' : '🇨🇳';
+  const label = lang === 'zh' ? 'EN' : '中文';
+  document.querySelector('#langToggle .lang-flag').textContent = flag;
+  document.getElementById('langLabel').textContent = label;
+}
+
+document.getElementById('langToggle').addEventListener('click', () => {
+  currentLang = currentLang === 'zh' ? 'en' : 'zh';
+  applyLang(currentLang);
+});
+
+// Intersection observer for fade-in
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
