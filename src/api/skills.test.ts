@@ -22,6 +22,7 @@ describe("buildInstallArgs", () => {
       scope: "global",
       copy: false,
     });
+    expect(args.slice(0, 3)).toEqual(["--yes", "skills", "add"]);
     expect(args).toContain("add");
     expect(args).toContain("anthropics/skills@code-review");
     expect(args).not.toContain("--skill");
@@ -40,7 +41,7 @@ describe("buildInstallArgs", () => {
       scope: "global",
       copy: false,
     });
-    expect(args[2]).toBe("https://github.com/heygen-com/hyperframes");
+    expect(args[3]).toBe("https://github.com/heygen-com/hyperframes");
     expect(args).toContain("--skill");
     expect(args).toContain("hyperframes");
   });
@@ -53,7 +54,7 @@ describe("buildInstallArgs", () => {
       scope: "global",
       copy: false,
     });
-    expect(args[2]).toBe("heygen-com/hyperframes@hyperframes");
+    expect(args[3]).toBe("heygen-com/hyperframes@hyperframes");
     expect(args).not.toContain("--skill");
   });
 
@@ -112,9 +113,7 @@ describe("buildInstallArgs", () => {
 describe("buildRemoveArgs", () => {
   it("produces correct base structure", () => {
     const args = buildRemoveArgs({ skillName: "my-skill", agents: [], scope: "global" });
-    expect(args[0]).toBe("skills");
-    expect(args[1]).toBe("remove");
-    expect(args[2]).toBe("my-skill");
+    expect(args.slice(0, 4)).toEqual(["--yes", "skills", "remove", "my-skill"]);
     expect(args).toContain("-g");
     expect(args).toContain("-y");
   });
@@ -152,9 +151,7 @@ describe("buildRemoveArgs", () => {
 describe("buildUpdateArgs", () => {
   it("produces correct base structure", () => {
     const args = buildUpdateArgs({ skillName: "my-skill", agents: [], scope: "global" });
-    expect(args[0]).toBe("skills");
-    expect(args[1]).toBe("update");
-    expect(args[2]).toBe("my-skill");
+    expect(args.slice(0, 4)).toEqual(["--yes", "skills", "update", "my-skill"]);
     expect(args).toContain("-g");
     expect(args).toContain("-y");
   });
@@ -173,7 +170,7 @@ describe("buildUpdateArgs", () => {
 
 describe("formatCommand", () => {
   it("joins args with spaces", () => {
-    expect(formatCommand(["skills", "list", "-g"])).toMatch(/skills list -g/);
+    expect(formatCommand(["--yes", "skills", "list", "-g"])).toMatch(/--yes skills list -g/);
   });
 
   it("quotes args that contain spaces", () => {

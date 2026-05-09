@@ -64,9 +64,13 @@ function installSourceAndSkillFlags(source: string, skillNames: string[]) {
   };
 }
 
+function buildSkillsCommandArgs(args: string[]) {
+  return ["--yes", "skills", ...args];
+}
+
 export function buildInstallArgs(request: SkillInstallRequest) {
   const installTarget = installSourceAndSkillFlags(request.source, request.skillNames);
-  const args = ["skills", "add", installTarget.source];
+  const args = buildSkillsCommandArgs(["add", installTarget.source]);
 
   installTarget.skillNames.forEach((skillName) => {
     args.push("--skill", skillName);
@@ -87,7 +91,7 @@ export function buildInstallArgs(request: SkillInstallRequest) {
 }
 
 export function buildRemoveArgs(request: SkillRemoveRequest) {
-  const args = ["skills", "remove", request.skillName];
+  const args = buildSkillsCommandArgs(["remove", request.skillName]);
 
   request.agents.forEach((agent) => {
     args.push("--agent", toAgentCliId(agent));
@@ -100,7 +104,7 @@ export function buildRemoveArgs(request: SkillRemoveRequest) {
 }
 
 export function buildUpdateArgs(request: SkillUpdateRequest) {
-  const args = ["skills", "update", request.skillName];
+  const args = buildSkillsCommandArgs(["update", request.skillName]);
 
   request.agents.forEach((agent) => {
     args.push("--agent", toAgentCliId(agent));

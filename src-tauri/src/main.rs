@@ -4,6 +4,8 @@ mod command_log;
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::{
     collections::HashSet,
     env, fs,
@@ -14,8 +16,6 @@ use std::{
     thread,
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
-#[cfg(windows)]
-use std::os::windows::process::CommandExt;
 use tauri::{AppHandle, Emitter};
 
 const COMMAND_TIMEOUT: Duration = Duration::from_secs(120);
@@ -588,7 +588,7 @@ where
 fn check_environment_blocking() -> CheckEnvironmentResponse {
     let node = run_command(vec!["--version".to_string()], Some("node"));
     let npx = run_command(vec!["--version".to_string()], Some(npx_binary()));
-    let skills = run_command(vec!["skills".to_string(), "--version".to_string()], None);
+    let skills = run_command(skills_command_args(["--version"]), None);
 
     let node_check = command_to_check("Node", &node);
     let npx_check = command_to_check("npx", &npx);
@@ -658,10 +658,7 @@ fn run_agent_catalog_command() -> CommandResult {
         );
     }
 
-    let command = run_command(
-        build_agent_catalog_args(&script_path),
-        None,
-    );
+    let command = run_command(build_agent_catalog_args(&script_path), None);
     let _ = fs::remove_file(script_path);
     command
 }
@@ -759,7 +756,7 @@ fn filter_detected_default_agents(
 }
 
 fn skills_find_blocking(query: String) -> SkillsFindResponse {
-    let args = vec!["skills".to_string(), "find".to_string(), query.clone()];
+    let args = skills_command_args(["find".to_string(), query.clone()]);
     let command = run_command(args, None);
     let raw_output = output_text(&command);
     let results = parse_find_output(&raw_output);
@@ -776,11 +773,7 @@ fn skills_list_blocking(
     agents: Vec<String>,
     project_path: Option<String>,
 ) -> SkillsListResponse {
-    let mut args = vec![
-        "skills".to_string(),
-        "list".to_string(),
-        "--json".to_string(),
-    ];
+    let mut args = skills_command_args(["list", "--json"]);
     args.push(scope.flag().to_string());
     append_agents(&mut args, &agents);
 
@@ -851,7 +844,7 @@ fn install_source_and_skill_flags(source: &str, skill_names: &[String]) -> (Stri
 fn build_add_args(request: &SkillInstallRequest) -> Vec<String> {
     let (source, skill_names) =
         install_source_and_skill_flags(&request.source, &request.skill_names);
-    let mut args = vec!["skills".to_string(), "add".to_string(), source];
+    let mut args = skills_command_args(["add".to_string(), source]);
     for skill_name in &skill_names {
         args.push("--skill".to_string());
         args.push(skill_name.clone());
@@ -869,12 +862,11 @@ fn build_remove_args(request: &SkillRemoveRequest) -> Vec<String> {
     build_remove_args_with_agents(request, true)
 }
 
-fn build_remove_args_with_agents(request: &SkillRemoveRequest, include_agents: bool) -> Vec<String> {
-    let mut args = vec![
-        "skills".to_string(),
-        "remove".to_string(),
-        request.skill_name.clone(),
-    ];
+fn build_remove_args_with_agents(
+    request: &SkillRemoveRequest,
+    include_agents: bool,
+) -> Vec<String> {
+    let mut args = skills_command_args(["remove".to_string(), request.skill_name.clone()]);
     if include_agents {
         append_agents(&mut args, &request.agents);
     }
@@ -884,11 +876,7 @@ fn build_remove_args_with_agents(request: &SkillRemoveRequest, include_agents: b
 }
 
 fn build_update_args(request: &SkillUpdateRequest) -> Vec<String> {
-    let mut args = vec![
-        "skills".to_string(),
-        "update".to_string(),
-        request.skill_name.clone(),
-    ];
+    let mut args = skills_command_args(["update".to_string(), request.skill_name.clone()]);
     append_agents(&mut args, &request.agents);
     args.push(request.scope.flag().to_string());
     args.push("-y".to_string());
@@ -1029,12 +1017,11 @@ fn remove_unlinked_skill(
 }
 
 fn skill_has_no_linked_agents(request: &SkillRemoveRequest, project_cwd: Option<&Path>) -> bool {
-    let args = vec![
-        "skills".to_string(),
+    let args = skills_command_args([
         "list".to_string(),
         "--json".to_string(),
         request.scope.flag().to_string(),
-    ];
+    ]);
     let command = run_command_with_cwd(args, None, project_cwd);
     if !matches!(command.status, CommandStatus::Success) {
         return false;
@@ -1128,26 +1115,47 @@ fn run_skills_raw_blocking(args: Vec<String>) -> Result<CommandResult, String> {
     let allowed: HashSet<&str> = ["find", "list", "add", "remove", "update"]
         .into_iter()
         .collect();
-    let first = args.first().map(String::as_str);
-    let subcommand = if first == Some("skills") {
-        args.get(1).map(String::as_str)
-    } else {
-        first
-    };
+    let subcommand = skills_subcommand(&args);
 
     if !subcommand.is_some_and(|value| allowed.contains(value)) {
         return Err("subcommand is not allowed".to_string());
     }
 
-    let final_args = if first == Some("skills") {
-        args
-    } else {
-        let mut prefixed = vec!["skills".to_string()];
-        prefixed.extend(args);
-        prefixed
-    };
+    let final_args = normalize_skills_command_args(args);
 
     Ok(run_command(final_args, None))
+}
+
+fn skills_command_args<I, S>(args: I) -> Vec<String>
+where
+    I: IntoIterator<Item = S>,
+    S: Into<String>,
+{
+    let mut final_args = vec!["--yes".to_string(), "skills".to_string()];
+    final_args.extend(args.into_iter().map(Into::into));
+    final_args
+}
+
+fn skills_subcommand(args: &[String]) -> Option<&str> {
+    let mut index = 0;
+    if args.get(index).map(String::as_str) == Some("--yes") {
+        index += 1;
+    }
+    if args.get(index).map(String::as_str) == Some("skills") {
+        index += 1;
+    }
+    args.get(index).map(String::as_str)
+}
+
+fn normalize_skills_command_args(args: Vec<String>) -> Vec<String> {
+    let mut args = args.into_iter().peekable();
+    if args.peek().map(String::as_str) == Some("--yes") {
+        args.next();
+    }
+    if args.peek().map(String::as_str) == Some("skills") {
+        args.next();
+    }
+    skills_command_args(args)
 }
 
 fn append_agents(args: &mut Vec<String>, agents: &[String]) {
@@ -1630,7 +1638,12 @@ fn resolve_npx_cli_path() -> Option<PathBuf> {
 fn npx_cli_candidates() -> Vec<PathBuf> {
     let mut candidates = Vec::new();
     for path in executable_search_paths() {
-        candidates.push(path.join("node_modules").join("npm").join("bin").join("npx-cli.js"));
+        candidates.push(
+            path.join("node_modules")
+                .join("npm")
+                .join("bin")
+                .join("npx-cli.js"),
+        );
     }
     candidates = dedupe_pathbufs(candidates);
     candidates
@@ -1846,7 +1859,10 @@ mod tests {
         }
 
         assert!(matches!(command.status, CommandStatus::Success));
-        assert_eq!(normalize_path_for_test(command.stdout.trim()), normalize_path_for_test(&package_dir.to_string_lossy()));
+        assert_eq!(
+            normalize_path_for_test(command.stdout.trim()),
+            normalize_path_for_test(&package_dir.to_string_lossy())
+        );
         fs::remove_dir_all(dir).unwrap();
     }
 
@@ -1859,6 +1875,38 @@ mod tests {
         assert_eq!(args[4], script_path.to_string_lossy());
         assert!(!args.iter().any(|arg| arg == "-e"));
         assert!(!args.iter().any(|arg| arg.contains("findSkillsPackageRoot")));
+    }
+
+    #[test]
+    fn skills_command_args_auto_accepts_npx_package_install_prompt() {
+        let args = skills_command_args(["find", "handoff"]);
+
+        assert_eq!(&args[..3], &["--yes", "skills", "find"]);
+        assert_eq!(args[3], "handoff");
+    }
+
+    #[test]
+    fn raw_skills_args_are_normalized_without_duplicate_yes_flag() {
+        let args = normalize_skills_command_args(vec![
+            "--yes".to_string(),
+            "skills".to_string(),
+            "list".to_string(),
+            "--json".to_string(),
+        ]);
+
+        assert_eq!(&args[..], &["--yes", "skills", "list", "--json"]);
+    }
+
+    #[test]
+    fn raw_skills_subcommand_allows_yes_prefixed_commands() {
+        let args = vec![
+            "--yes".to_string(),
+            "skills".to_string(),
+            "update".to_string(),
+            "my-skill".to_string(),
+        ];
+
+        assert_eq!(skills_subcommand(&args), Some("update"));
     }
 
     fn normalize_path_for_test(path: &str) -> String {
@@ -1879,7 +1927,10 @@ mod tests {
     fn extract_js_function(source: &str, name: &str) -> String {
         let marker = format!("function {name}");
         let start = source.find(&marker).unwrap();
-        let open = source[start..].find('{').map(|index| start + index).unwrap();
+        let open = source[start..]
+            .find('{')
+            .map(|index| start + index)
+            .unwrap();
         let mut depth = 0;
         for (offset, ch) in source[open..].char_indices() {
             if ch == '{' {
@@ -2282,8 +2333,8 @@ mod tests {
         };
         let args = build_add_args(&req);
         assert_eq!(
-            &args[..3],
-            &["skills", "add", "anthropics/skills@code-review"]
+            &args[..4],
+            &["--yes", "skills", "add", "anthropics/skills@code-review"]
         );
         assert!(!args.contains(&"--skill".to_string()));
         assert!(args.contains(&"--agent".to_string()));
@@ -2305,7 +2356,7 @@ mod tests {
             copy: false,
         };
         let args = build_add_args(&req);
-        assert_eq!(args[2], "https://github.com/heygen-com/hyperframes");
+        assert_eq!(args[3], "https://github.com/heygen-com/hyperframes");
         assert!(args.contains(&"--skill".to_string()));
         assert!(args.contains(&"hyperframes".to_string()));
     }
@@ -2322,7 +2373,7 @@ mod tests {
             copy: false,
         };
         let args = build_add_args(&req);
-        assert_eq!(args[2], "heygen-com/hyperframes@hyperframes");
+        assert_eq!(args[3], "heygen-com/hyperframes@hyperframes");
         assert!(!args.contains(&"--skill".to_string()));
     }
 
@@ -2369,7 +2420,10 @@ mod tests {
             command_id: None,
         };
         let args = build_remove_args(&req);
-        assert_eq!(&args[..3], &["skills", "remove", "documentation-writer"]);
+        assert_eq!(
+            &args[..4],
+            &["--yes", "skills", "remove", "documentation-writer"]
+        );
         assert!(args.contains(&"-g".to_string()));
         assert!(args.contains(&"-y".to_string()));
     }
@@ -2396,7 +2450,7 @@ mod tests {
             command_id: None,
         };
         let args = build_remove_args_with_agents(&req, false);
-        assert_eq!(&args[..3], &["skills", "remove", "x"]);
+        assert_eq!(&args[..4], &["--yes", "skills", "remove", "x"]);
         assert!(!args.contains(&"--agent".to_string()));
         assert!(args.contains(&"-g".to_string()));
         assert!(args.contains(&"-y".to_string()));
@@ -2452,9 +2506,7 @@ mod tests {
 
         append_cleanup_command_output(&mut command, &cleanup);
 
-        assert!(command
-            .stdout
-            .contains("SkillDeck cleanup command:"));
+        assert!(command.stdout.contains("SkillDeck cleanup command:"));
         assert!(command.stdout.contains("npx.cmd skills remove x -g -y"));
         assert!(command.stdout.contains("cleanup stdout"));
         assert!(matches!(command.status, CommandStatus::Success));
@@ -2471,7 +2523,7 @@ mod tests {
             command_id: None,
         };
         let args = build_update_args(&req);
-        assert_eq!(&args[..3], &["skills", "update", "my-skill"]);
+        assert_eq!(&args[..4], &["--yes", "skills", "update", "my-skill"]);
         assert!(args.contains(&"--agent".to_string()));
         assert!(args.contains(&"cursor".to_string()));
         assert!(args.contains(&"-g".to_string()));
