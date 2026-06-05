@@ -499,7 +499,8 @@ fn main() {
             skills_remove,
             skills_update,
             run_skills_raw,
-            check_symlink_paths
+            check_symlink_paths,
+            read_skill_content
         ])
         .run(tauri::generate_context!())
         .expect("failed to run SkillDeck");
@@ -559,6 +560,16 @@ async fn run_skills_raw(args: Vec<String>) -> Result<CommandResult, String> {
     tauri::async_runtime::spawn_blocking(move || run_skills_raw_blocking(args))
         .await
         .map_err(|error| error.to_string())?
+}
+
+#[tauri::command]
+async fn read_skill_content(path: String) -> Result<String, String> {
+    run_blocking(move || {
+        let skill_path = Path::new(&path).join("SKILL.md");
+        fs::read_to_string(&skill_path)
+            .map_err(|e| format!("Failed to read {}: {}", skill_path.display(), e))
+    })
+    .await
 }
 
 #[tauri::command]

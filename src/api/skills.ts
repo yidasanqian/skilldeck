@@ -26,6 +26,7 @@ export interface SkillsApi {
   skillsRemove(request: SkillRemoveRequest): Promise<SkillsMutationResponse>;
   skillsUpdate(request: SkillUpdateRequest): Promise<SkillsMutationResponse>;
   checkSymlinkPaths(paths: string[]): Promise<string[]>;
+  readSkillContent(path: string): Promise<string>;
 }
 
 function getNpxBinaryName() {
@@ -158,6 +159,9 @@ function createTauriSkillsApi(): SkillsApi {
     },
     checkSymlinkPaths(paths) {
       return invokeTauri<string[]>("check_symlink_paths", { paths });
+    },
+    readSkillContent(path) {
+      return invokeTauri<string>("read_skill_content", { path });
     },
   };
 }

@@ -18,6 +18,7 @@ interface InstalledViewProps {
   onCheckPaths: (paths: string[]) => Promise<string[]>;
   onRemove: (skill: SkillRecord) => void;
   onUpdate: (skill: SkillRecord) => void;
+  onPreview: (skill: SkillRecord) => void;
 }
 
 function normalizePath(path: string) {
@@ -109,6 +110,7 @@ export function InstalledView({
   onCheckPaths,
   onRemove,
   onUpdate,
+  onPreview,
 }: InstalledViewProps) {
   const [scope, setScope] = useState<Scope>(defaultScope);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
@@ -214,7 +216,9 @@ export function InstalledView({
               {skills.map((skill) => (
                 <tr key={skill.id}>
                   <td>
-                    <strong>{skill.name}</strong>
+                    <button className="skill-name-btn" type="button" onClick={() => onPreview(skill)}>
+                      {skill.name}
+                    </button>
                     {skill.description ? <small>{skill.description}</small> : null}
                   </td>
                   <td>

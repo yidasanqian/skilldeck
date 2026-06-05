@@ -5,6 +5,7 @@ import { buildInstallArgs, buildRemoveArgs, buildUpdateArgs, createSkillsApi } f
 import { AppShell } from "./components/AppShell";
 import { CommandLog, type CommandLogFocus } from "./components/CommandLog";
 import { ConfirmDialog, type ConfirmDialogState } from "./components/ConfirmDialog";
+import { SkillPreviewDialog, type SkillPreviewState } from "./components/SkillPreviewDialog";
 import { createTranslator, getInitialLocale, persistLocale } from "./i18n";
 import type {
   AgentCatalogResponse,
@@ -125,6 +126,7 @@ export default function App() {
   const [installedLoading, setInstalledLoading] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmDialogState | null>(null);
   const [mutationBusy, setMutationBusy] = useState(false);
+  const [previewState, setPreviewState] = useState<SkillPreviewState | null>(null);
   const [agentCatalog, setAgentCatalog] = useState<AgentCatalogResponse>(initialAgentCatalog);
   const [installDefaults, setInstallDefaults] = useState<InstallDefaultsResponse>(initialInstallDefaults);
   const [agentMetadataLoading, setAgentMetadataLoading] = useState(false);
@@ -464,6 +466,20 @@ export default function App() {
     });
   }
 
+  function closePreview() {
+    setPreviewState(null);
+  }
+
+  async function handlePreviewSkill(skill: SkillRecord) {
+    setPreviewState({ skillName: skill.name, content: null, loading: true });
+    try {
+      const content = await api.readSkillContent(skill.source);
+      setPreviewState({ skillName: skill.name, content, loading: false });
+    } catch (err) {
+      setPreviewState({ skillName: skill.name, content: null, loading: false, error: String(err) });
+    }
+  }
+
   const canMutate = environment.overall === "ready";
 
   function prepareInstall(draft: InstallDraft) {
@@ -525,6 +541,7 @@ export default function App() {
             onCheckPaths={checkPaths}
             onRemove={requestRemove}
             onUpdate={requestUpdate}
+            onPreview={handlePreviewSkill}
           />
         </div>
 
@@ -567,6 +584,7 @@ export default function App() {
         onToggle={() => setLogOpen((current) => !current)}
       />
       <ConfirmDialog state={confirmState} t={t} busy={mutationBusy} onClose={closeConfirm} />
+      <SkillPreviewDialog state={previewState} t={t} onClose={closePreview} />
     </>
   );
 }
