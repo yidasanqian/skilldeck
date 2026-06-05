@@ -3,5 +3,14 @@
   "identifier": "default",
   "description": "Default permissions for the main SkillDeck window",
   "windows": ["main"],
-  "permissions": ["core:default", "dialog:allow-open", "updater:default", "process:default"]
+  "permissions": [
+    "core:default",
+    "dialog:allow-open",
+    "updater:default",
+    "process:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "https://**" }, { "url": "http://**" }]
+    }
+  ]
 }

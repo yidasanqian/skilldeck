@@ -1,5 +1,6 @@
-import { Download, Search as SearchIcon } from "lucide-react";
+import { Download, ExternalLink, Search as SearchIcon } from "lucide-react";
 import { useState } from "react";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import type { SkillsApi } from "../api/skills";
 import type { TFunction } from "../i18n";
 import type { CommandResult, InstallDraft, SkillSearchResult } from "../types";
@@ -96,7 +97,20 @@ export function SearchView({ api, canMutate, t, onCommand, onPrepareInstall }: S
                     <div className="tag-row">{result.tags?.map((tag) => <span key={tag}>{tag}</span>)}</div>
                   </td>
                   <td>
-                    <code>{result.source}</code>
+                    <span className="source-cell">
+                      <code>{result.source}</code>
+                      {result.installHint ? (
+                        <button
+                          className="button button--ghost button--icon"
+                          type="button"
+                          title={t("search.openLink")}
+                          aria-label={t("search.openLink")}
+                          onClick={() => void openUrl(result.installHint!)}
+                        >
+                          <ExternalLink size={13} />
+                        </button>
+                      ) : null}
+                    </span>
                   </td>
                   <td>{result.description}</td>
                   <td>

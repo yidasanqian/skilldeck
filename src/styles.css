@@ -726,6 +726,37 @@ td small {
   color: var(--danger);
 }
 
+.button--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+}
+
+.button--ghost:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--text);
+}
+
+@media (prefers-color-scheme: dark) {
+  .button--ghost:hover {
+    background: rgba(255, 255, 255, 0.09);
+  }
+}
+
+.button--icon {
+  width: 22px;
+  min-height: 22px;
+  height: 22px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.source-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .copy-button-shell {
   display: inline-flex;
   align-items: center;
