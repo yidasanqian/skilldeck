@@ -14,6 +14,7 @@ const requiredPlatforms = [
   {
     artifact: "skilldeck-macos-universal",
     keys: ["darwin-x86_64", "darwin-aarch64"],
+    releaseAssetName: "SkillDeck_universal.app.tar.gz",
     signaturePattern: ".app.tar.gz.sig",
   },
   {
