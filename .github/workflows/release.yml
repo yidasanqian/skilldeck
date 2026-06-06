@@ -16,29 +16,25 @@ jobs:
       matrix:
         include:
           - platform: macos-latest
-            artifact: macos-arm64
-            rust_target: aarch64-apple-darwin
-            args: "--target aarch64-apple-darwin"
-          - platform: macos-15-intel
-            artifact: macos-intel
-            rust_target: x86_64-apple-darwin
-            args: "--target x86_64-apple-darwin"
+            artifact: macos-universal
+            rust_target: universal-apple-darwin
+            args: "--target universal-apple-darwin --bundles app,dmg"
           - platform: ubuntu-22.04
             artifact: linux-x64
             rust_target: x86_64-unknown-linux-gnu
-            args: "--target x86_64-unknown-linux-gnu --bundles deb,appimage"
+            args: "--target x86_64-unknown-linux-gnu --bundles appimage"
           - platform: ubuntu-24.04-arm
             artifact: linux-arm64
             rust_target: aarch64-unknown-linux-gnu
-            args: "--target aarch64-unknown-linux-gnu --bundles deb,appimage"
+            args: "--target aarch64-unknown-linux-gnu --bundles appimage"
           - platform: windows-latest
             artifact: windows-x64
             rust_target: x86_64-pc-windows-msvc
-            args: "--target x86_64-pc-windows-msvc"
+            args: "--target x86_64-pc-windows-msvc --bundles nsis"
           - platform: windows-11-arm
             artifact: windows-arm64
             rust_target: aarch64-pc-windows-msvc
-            args: "--target aarch64-pc-windows-msvc"
+            args: "--target aarch64-pc-windows-msvc --bundles nsis"
 
     runs-on: ${{ matrix.platform }}
 

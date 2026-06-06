@@ -5,31 +5,26 @@ const artifactsDir = process.argv[2];
 const outputPath = process.argv[3] ?? "latest.json";
 
 if (!artifactsDir) {
-  throw new Error("Usage: node create-latest-manifest.mjs <artifacts-dir> [output-path]");
+  throw new Error(
+    "Usage: node create-latest-manifest.mjs <artifacts-dir> [output-path]",
+  );
 }
 
 const requiredPlatforms = [
   {
-    artifact: "skilldeck-macos-intel",
-    key: "darwin-x86_64",
-    releaseAssetName: "SkillDeck_x64.app.tar.gz",
-    signaturePattern: ".app.tar.gz.sig",
-  },
-  {
-    artifact: "skilldeck-macos-arm64",
-    key: "darwin-aarch64",
-    releaseAssetName: "SkillDeck_aarch64.app.tar.gz",
+    artifact: "skilldeck-macos-universal",
+    keys: ["darwin-x86_64", "darwin-aarch64"],
     signaturePattern: ".app.tar.gz.sig",
   },
   {
     artifact: "skilldeck-windows-x64",
     key: "windows-x86_64",
-    signaturePatterns: [".msi.sig", "-setup.exe.sig"],
+    signaturePatterns: ["-setup.exe.sig"],
   },
   {
     artifact: "skilldeck-windows-arm64",
     key: "windows-aarch64",
-    signaturePatterns: [".msi.sig", "-setup.exe.sig"],
+    signaturePatterns: ["-setup.exe.sig"],
   },
   {
     artifact: "skilldeck-linux-x64",
@@ -76,24 +71,30 @@ const platforms = {};
 for (const platform of requiredPlatforms) {
   const artifactDir = join(artifactsDir, platform.artifact);
   const files = await walk(artifactDir);
-  const signaturePatterns = platform.signaturePatterns ?? [platform.signaturePattern];
+  const keys = platform.keys ?? [platform.key];
+  const signaturePatterns = platform.signaturePatterns ?? [
+    platform.signaturePattern,
+  ];
   const signaturePath = signaturePatterns
     .flatMap((pattern) => files.filter((file) => file.endsWith(pattern)))
     .sort((a, b) => a.localeCompare(b))[0];
 
   if (!signaturePath) {
     throw new Error(
-      `Missing ${platform.key} updater signature (${signaturePatterns.join(" or ")}) in ${relative(process.cwd(), artifactDir)}`,
+      `Missing ${keys.join(", ")} updater signature (${signaturePatterns.join(" or ")}) in ${relative(process.cwd(), artifactDir)}`,
     );
   }
 
   const bundlePath = signaturePath.slice(0, -".sig".length);
   const signature = (await readFile(signaturePath, "utf8")).trim();
   const assetName = platform.releaseAssetName ?? basename(bundlePath);
-  platforms[platform.key] = {
-    signature,
-    url: assetUrl(assetName),
-  };
+
+  for (const key of keys) {
+    platforms[key] = {
+      signature,
+      url: assetUrl(assetName),
+    };
+  }
 }
 
 const manifest = {
@@ -104,4 +105,6 @@ const manifest = {
 };
 
 await writeFile(outputPath, `${JSON.stringify(manifest, null, 2)}\n`);
-console.log(`Wrote ${outputPath} with ${Object.keys(platforms).length} platforms.`);
+console.log(
+  `Wrote ${outputPath} with ${Object.keys(platforms).length} platforms.`,
+);
