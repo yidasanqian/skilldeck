@@ -113,4 +113,4 @@ When the operating system shows a security warning:
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).

@@ -112,4 +112,4 @@ SkillDeck 有两类日志：
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
