@@ -56,7 +56,8 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             libwebkit2gtk-4.1-dev \
-            libxdo-dev
+            libxdo-dev \
+            xdg-utils
 
       - name: Setup Node
         uses: actions/setup-node@v4
