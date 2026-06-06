@@ -68,7 +68,14 @@ jobs:
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Add Rust targets (macOS universal)
+        if: matrix.rust_target == 'universal-apple-darwin'
+        run: |
+          rustup target add aarch64-apple-darwin
+          rustup target add x86_64-apple-darwin
+
       - name: Add Rust target
+        if: matrix.rust_target != 'universal-apple-darwin'
         run: rustup target add ${{ matrix.rust_target }}
 
       - name: Install frontend dependencies
